@@ -1,5 +1,5 @@
 
-import { supabase } from "@/lib/supabase";
+import { supabase } from "@/integrations/supabase/client";
 import { MOCK_DISTRICTS, MOCK_USERS, MOCK_CANDIDATES } from "@/services/mockData";
 
 export const setupDatabase = async () => {

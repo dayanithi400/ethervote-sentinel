@@ -9,13 +9,215 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
-      [_ in never]: never
+      candidates: {
+        Row: {
+          constituency_id: string
+          created_at: string
+          district_id: string
+          id: string
+          name: string
+          party: string
+          symbol: string
+          vote_count: number | null
+        }
+        Insert: {
+          constituency_id: string
+          created_at?: string
+          district_id: string
+          id?: string
+          name: string
+          party: string
+          symbol: string
+          vote_count?: number | null
+        }
+        Update: {
+          constituency_id?: string
+          created_at?: string
+          district_id?: string
+          id?: string
+          name?: string
+          party?: string
+          symbol?: string
+          vote_count?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "candidates_constituency_id_fkey"
+            columns: ["constituency_id"]
+            isOneToOne: false
+            referencedRelation: "constituencies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "candidates_district_id_fkey"
+            columns: ["district_id"]
+            isOneToOne: false
+            referencedRelation: "districts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      constituencies: {
+        Row: {
+          created_at: string
+          district_id: string
+          id: string
+          name: string
+        }
+        Insert: {
+          created_at?: string
+          district_id: string
+          id?: string
+          name: string
+        }
+        Update: {
+          created_at?: string
+          district_id?: string
+          id?: string
+          name?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "constituencies_district_id_fkey"
+            columns: ["district_id"]
+            isOneToOne: false
+            referencedRelation: "districts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      districts: {
+        Row: {
+          created_at: string
+          id: string
+          name: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          name: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          name?: string
+        }
+        Relationships: []
+      }
+      users: {
+        Row: {
+          constituency: string
+          created_at: string
+          district: string
+          email: string
+          has_voted: boolean | null
+          id: string
+          name: string
+          phone: string
+          voter_id: string
+          wallet_address: string | null
+        }
+        Insert: {
+          constituency: string
+          created_at?: string
+          district: string
+          email: string
+          has_voted?: boolean | null
+          id: string
+          name: string
+          phone: string
+          voter_id: string
+          wallet_address?: string | null
+        }
+        Update: {
+          constituency?: string
+          created_at?: string
+          district?: string
+          email?: string
+          has_voted?: boolean | null
+          id?: string
+          name?: string
+          phone?: string
+          voter_id?: string
+          wallet_address?: string | null
+        }
+        Relationships: []
+      }
+      votes: {
+        Row: {
+          candidate_id: string
+          constituency_id: string
+          district_id: string
+          id: string
+          timestamp: string
+          transaction_hash: string
+          voter_id: string
+        }
+        Insert: {
+          candidate_id: string
+          constituency_id: string
+          district_id: string
+          id?: string
+          timestamp?: string
+          transaction_hash: string
+          voter_id: string
+        }
+        Update: {
+          candidate_id?: string
+          constituency_id?: string
+          district_id?: string
+          id?: string
+          timestamp?: string
+          transaction_hash?: string
+          voter_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "votes_candidate_id_fkey"
+            columns: ["candidate_id"]
+            isOneToOne: false
+            referencedRelation: "candidates"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "votes_constituency_id_fkey"
+            columns: ["constituency_id"]
+            isOneToOne: false
+            referencedRelation: "constituencies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "votes_district_id_fkey"
+            columns: ["district_id"]
+            isOneToOne: false
+            referencedRelation: "districts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      begin_transaction: {
+        Args: Record<PropertyKey, never>
+        Returns: undefined
+      }
+      commit_transaction: {
+        Args: Record<PropertyKey, never>
+        Returns: undefined
+      }
+      increment_vote_count: {
+        Args: {
+          candidate_id: string
+        }
+        Returns: undefined
+      }
+      rollback_transaction: {
+        Args: Record<PropertyKey, never>
+        Returns: undefined
+      }
     }
     Enums: {
       [_ in never]: never
