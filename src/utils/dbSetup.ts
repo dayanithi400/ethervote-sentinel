@@ -46,16 +46,19 @@ export const setupDatabase = async () => {
       // Seed mock users
       for (const user of MOCK_USERS) {
         // Check if email already exists in auth
+        // Using listUsers without the unsupported 'filters' property
         const { data: existingUsers } = await supabase.auth.admin.listUsers({
-          filters: {
-            email: user.email
-          }
+          page: 1,
+          perPage: 1000, // Adjust as needed
         });
+        
+        // Manually filter the users by email
+        const userExists = existingUsers?.users?.some(u => u.email === user.email);
         
         let userId = user.id;
         
         // Create auth user if not exists
-        if (!existingUsers || existingUsers.users.length === 0) {
+        if (!userExists) {
           const { data: authUser, error: authError } = await supabase.auth.admin.createUser({
             email: user.email,
             password: 'password123', // Default password for mock users
