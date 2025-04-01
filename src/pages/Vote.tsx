@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { 
@@ -14,7 +13,7 @@ import { useAuth } from "@/context/AuthContext";
 import { mockGetCandidatesByConstituency, mockCastVote } from "@/services/mockData";
 import { Candidate, VoteData } from "@/types";
 import { connectWallet, getCurrentWalletAddress, mockBlockchainTransaction } from "@/utils/web3";
-import { toast } from "@/components/ui/sonner";
+import { toast } from "sonner";
 import { Vote as VoteIcon, Check, AlertTriangle, Loader2 } from "lucide-react";
 import Navbar from "@/components/Navbar";
 
@@ -34,11 +33,9 @@ const Vote: React.FC = () => {
     }
 
     const initialize = async () => {
-      // Check if wallet is connected
       const address = await getCurrentWalletAddress();
       setWalletConnected(!!address);
       
-      // Load candidates
       if (user && user.district && user.constituency) {
         const constituencyCandidates = await mockGetCandidatesByConstituency(
           user.district,
@@ -83,15 +80,12 @@ const Vote: React.FC = () => {
     setIsVoting(true);
     
     try {
-      // First simulate blockchain transaction
       toast.info("Processing transaction", {
         description: "Please confirm the transaction in MetaMask"
       });
       
-      // Simulate blockchain delay and transaction
       const transaction = await mockBlockchainTransaction();
       
-      // Create vote data
       const voteData: VoteData = {
         voterId: user.voterId,
         candidateId: selectedCandidate,
@@ -101,19 +95,16 @@ const Vote: React.FC = () => {
         transactionHash: transaction.hash
       };
       
-      // Submit vote to mock API
       await mockCastVote(voteData);
       
       toast.success("Vote cast successfully", {
         description: `Transaction hash: ${transaction.hash.substring(0, 10)}...`
       });
       
-      // Update local user data
       if (user) {
         user.hasVoted = true;
       }
       
-      // Navigate to results
       setTimeout(() => {
         navigate("/dashboard");
       }, 2000);
@@ -129,10 +120,9 @@ const Vote: React.FC = () => {
   };
 
   if (!isAuthenticated || !user) {
-    return null; // Will redirect to login from useEffect
+    return null;
   }
 
-  // If user has already voted, redirect to dashboard
   if (user.hasVoted) {
     toast.info("Already voted", {
       description: "You have already cast your vote"

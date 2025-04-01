@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -7,7 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useAuth } from "@/context/AuthContext";
-import { toast } from "@/components/ui/sonner";
+import { toast } from "sonner";
 import { MOCK_DISTRICTS } from "@/services/mockData";
 import { connectWallet, getCurrentWalletAddress } from "@/utils/web3";
 import { Vote, Wallet } from "lucide-react";
@@ -63,7 +62,6 @@ const Register: React.FC = () => {
     }
   };
 
-  // Check if MetaMask is already connected
   React.useEffect(() => {
     const checkWallet = async () => {
       const address = await getCurrentWalletAddress();

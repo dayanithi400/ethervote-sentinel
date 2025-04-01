@@ -2,7 +2,7 @@
 import React, { createContext, useContext, useState, useEffect } from "react";
 import { AuthState, User, LoginCredentials } from "@/types";
 import { mockLogin, mockRegister, MOCK_USERS } from "@/services/mockData";
-import { toast } from "@/components/ui/sonner";
+import { toast } from "sonner";
 
 interface AuthContextType extends AuthState {
   login: (credentials: LoginCredentials) => Promise<boolean>;

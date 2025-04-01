@@ -1,5 +1,5 @@
 
-import { toast } from "@/components/ui/sonner";
+import { toast } from "sonner";
 
 // Interface for the window with ethereum property
 interface WindowWithEthereum extends Window {
