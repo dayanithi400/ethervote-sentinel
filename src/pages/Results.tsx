@@ -108,7 +108,7 @@ const Results: React.FC = () => {
                     <SelectValue placeholder="All Districts" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">All Districts</SelectItem>
+                    <SelectItem value="all-districts">All Districts</SelectItem>
                     {MOCK_DISTRICTS.map((district) => (
                       <SelectItem key={district.id} value={district.name}>
                         {district.name}
@@ -131,7 +131,7 @@ const Results: React.FC = () => {
                     />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">All Constituencies</SelectItem>
+                    <SelectItem value="all-constituencies">All Constituencies</SelectItem>
                     {constituencies.map((constituency) => (
                       <SelectItem key={constituency} value={constituency}>
                         {constituency}
