@@ -45,20 +45,25 @@ export const setupDatabase = async () => {
       
       // Seed mock users
       for (const user of MOCK_USERS) {
-        // Check if email already exists in auth
-        // Using listUsers without the unsupported 'filters' property
-        const { data: existingUsers } = await supabase.auth.admin.listUsers({
-          page: 1,
-          perPage: 1000, // Adjust as needed
-        });
-        
-        // Manually filter the users by email
-        const userExists = existingUsers?.users?.some(u => u.email === user.email);
-        
+        // We can't directly check for existing users with email in listUsers
+        // So we'll first try to get the user and only create if not found
         let userId = user.id;
         
-        // Create auth user if not exists
-        if (!userExists) {
+        try {
+          // Check if a user with this email already exists in the users table
+          const { data: existingUserData } = await supabase
+            .from('users')
+            .select('id')
+            .eq('email', user.email)
+            .maybeSingle();
+            
+          // If user exists in our table, skip to the next iteration
+          if (existingUserData) {
+            console.log(`User with email ${user.email} already exists, skipping`);
+            continue;
+          }
+          
+          // Create auth user
           const { data: authUser, error: authError } = await supabase.auth.admin.createUser({
             email: user.email,
             password: 'password123', // Default password for mock users
@@ -71,6 +76,9 @@ export const setupDatabase = async () => {
           }
           
           userId = authUser.user.id;
+        } catch (error) {
+          console.error("Error checking existing user:", error);
+          continue;
         }
         
         // Get district and constituency ids
