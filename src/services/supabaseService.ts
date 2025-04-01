@@ -1,14 +1,54 @@
 
-import { supabase } from '@/lib/supabase';
+import { supabase } from '@/integrations/supabase/client';
 import { User, Candidate, District, VoteData } from '@/types';
-import { Database } from '@/types/database.types';
 
 // Type for Supabase responses
-type DbDistrict = Database['public']['Tables']['districts']['Row'];
-type DbConstituency = Database['public']['Tables']['constituencies']['Row'];
-type DbCandidate = Database['public']['Tables']['candidates']['Row'];
-type DbUser = Database['public']['Tables']['users']['Row'];
-type DbVote = Database['public']['Tables']['votes']['Row'];
+type DbDistrict = {
+  id: string;
+  name: string;
+  created_at: string;
+};
+
+type DbConstituency = {
+  id: string;
+  name: string;
+  district_id: string;
+  created_at: string;
+};
+
+type DbCandidate = {
+  id: string;
+  name: string;
+  party: string;
+  district_id: string;
+  constituency_id: string;
+  symbol: string;
+  vote_count: number;
+  created_at: string;
+};
+
+type DbUser = {
+  id: string;
+  name: string;
+  voter_id: string;
+  district: string;
+  constituency: string;
+  email: string;
+  phone: string;
+  wallet_address: string | null;
+  has_voted: boolean | null;
+  created_at: string;
+};
+
+type DbVote = {
+  id: string;
+  voter_id: string;
+  candidate_id: string;
+  district_id: string;
+  constituency_id: string;
+  timestamp: string;
+  transaction_hash: string;
+};
 
 /**
  * District functions
@@ -88,7 +128,7 @@ export const getCandidatesByConstituency = async (
       district: district,
       constituency: constituency,
       symbol: c.symbol,
-      voteCount: c.vote_count
+      voteCount: c.vote_count || 0
     }));
   } catch (error) {
     console.error('Error fetching candidates:', error);
@@ -115,7 +155,7 @@ export const getAllCandidates = async (): Promise<Candidate[]> => {
       district: c.districts.name,
       constituency: c.constituencies.name,
       symbol: c.symbol,
-      voteCount: c.vote_count
+      voteCount: c.vote_count || 0
     }));
   } catch (error) {
     console.error('Error fetching all candidates:', error);
@@ -171,7 +211,7 @@ export const addCandidate = async (candidateData: Partial<Candidate>): Promise<C
       district: newCandidate.districts.name,
       constituency: newCandidate.constituencies.name,
       symbol: newCandidate.symbol,
-      voteCount: newCandidate.vote_count
+      voteCount: newCandidate.vote_count || 0
     };
   } catch (error) {
     console.error('Error adding candidate:', error);
@@ -284,7 +324,7 @@ export const getResults = async (): Promise<Candidate[]> => {
       district: c.districts.name,
       constituency: c.constituencies.name,
       symbol: c.symbol,
-      voteCount: c.vote_count
+      voteCount: c.vote_count || 0
     }));
   } catch (error) {
     console.error('Error fetching results:', error);

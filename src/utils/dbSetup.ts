@@ -31,15 +31,17 @@ export const setupDatabase = async () => {
         if (districtError) throw districtError;
         
         // Insert constituencies for this district
-        for (const constituency of district.constituencies) {
-          const { error: constituencyError } = await supabase
-            .from('constituencies')
-            .insert({
-              name: constituency,
-              district_id: newDistrict.id
-            });
-            
-          if (constituencyError) throw constituencyError;
+        if (newDistrict) {
+          for (const constituency of district.constituencies) {
+            const { error: constituencyError } = await supabase
+              .from('constituencies')
+              .insert({
+                name: constituency,
+                district_id: newDistrict.id
+              });
+              
+            if (constituencyError) throw constituencyError;
+          }
         }
       }
       
@@ -75,7 +77,9 @@ export const setupDatabase = async () => {
             continue;
           }
           
-          userId = authUser.user.id;
+          if (authUser && authUser.user) {
+            userId = authUser.user.id;
+          }
         } catch (error) {
           console.error("Error checking existing user:", error);
           continue;

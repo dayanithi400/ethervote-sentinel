@@ -1,6 +1,6 @@
 
 import { createClient } from '@supabase/supabase-js';
-import { Database } from '@/types/database.types';
+import type { Database } from '@/integrations/supabase/types';
 
 // Default values for development (will be overridden by actual env vars if available)
 const supabaseUrl = "https://fyipqumgopcmmpqhmznp.supabase.co";
