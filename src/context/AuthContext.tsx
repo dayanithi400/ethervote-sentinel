@@ -1,8 +1,8 @@
 
 import React, { createContext, useContext, useState, useEffect } from "react";
 import { AuthState, User, LoginCredentials } from "@/types";
-import { mockLogin, mockRegister, MOCK_USERS } from "@/services/mockData";
 import { toast } from "sonner";
+import { supabase } from "@/lib/supabase";
 
 interface AuthContextType extends AuthState {
   login: (credentials: LoginCredentials) => Promise<boolean>;
@@ -40,6 +40,46 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return initialState;
   });
 
+  // Check for existing session on load
+  useEffect(() => {
+    const checkSession = async () => {
+      const { data } = await supabase.auth.getSession();
+      
+      if (data.session) {
+        // Fetch user profile data
+        const { data: userData, error } = await supabase
+          .from('users')
+          .select('*')
+          .eq('id', data.session.user.id)
+          .single();
+        
+        if (userData) {
+          const user: User = {
+            id: userData.id,
+            name: userData.name,
+            voterId: userData.voter_id,
+            district: userData.district,
+            constituency: userData.constituency,
+            email: userData.email,
+            phone: userData.phone,
+            walletAddress: userData.wallet_address,
+            hasVoted: userData.has_voted
+          };
+          
+          setState({
+            user,
+            isAuthenticated: true,
+            isAdmin: userData.email === "admin@example.com"
+          });
+          
+          localStorage.setItem("user", JSON.stringify(user));
+        }
+      }
+    };
+    
+    checkSession();
+  }, []);
+
   // Save auth state to local storage when it changes
   useEffect(() => {
     if (state.user) {
@@ -51,14 +91,51 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const login = async (credentials: LoginCredentials): Promise<boolean> => {
     try {
-      const user = await mockLogin(credentials.email, credentials.password);
+      // Sign in with Supabase Auth
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email: credentials.email,
+        password: credentials.password
+      });
       
-      if (!user) {
+      if (error) {
+        toast.error("Login failed", {
+          description: error.message
+        });
+        return false;
+      }
+      
+      if (!data.user) {
         toast.error("Login failed", {
           description: "Invalid email or password"
         });
         return false;
       }
+      
+      // Fetch user profile data
+      const { data: userData, error: profileError } = await supabase
+        .from('users')
+        .select('*')
+        .eq('id', data.user.id)
+        .single();
+      
+      if (profileError || !userData) {
+        toast.error("Login failed", {
+          description: "Unable to fetch user profile"
+        });
+        return false;
+      }
+      
+      const user: User = {
+        id: userData.id,
+        name: userData.name,
+        voterId: userData.voter_id,
+        district: userData.district,
+        constituency: userData.constituency,
+        email: userData.email,
+        phone: userData.phone,
+        walletAddress: userData.wallet_address,
+        hasVoted: userData.has_voted
+      };
       
       // Check if user is admin
       const isAdmin = user.email === "admin@example.com";
@@ -85,14 +162,62 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const register = async (userData: any): Promise<boolean> => {
     try {
-      const newUser = await mockRegister(userData);
+      // Register with Supabase Auth
+      const { data, error } = await supabase.auth.signUp({
+        email: userData.email,
+        password: userData.password
+      });
       
-      if (!newUser) {
+      if (error) {
         toast.error("Registration failed", {
-          description: "Email or Voter ID already exists"
+          description: error.message
         });
         return false;
       }
+      
+      if (!data.user) {
+        toast.error("Registration failed", {
+          description: "Unable to create user"
+        });
+        return false;
+      }
+      
+      // Create user profile in the database
+      const { error: profileError } = await supabase
+        .from('users')
+        .insert({
+          id: data.user.id,
+          name: userData.name,
+          voter_id: userData.voterId,
+          district: userData.district,
+          constituency: userData.constituency,
+          email: userData.email,
+          phone: userData.phone,
+          wallet_address: userData.walletAddress,
+          has_voted: false
+        });
+      
+      if (profileError) {
+        // Clean up auth user if profile creation fails
+        await supabase.auth.signOut();
+        
+        toast.error("Registration failed", {
+          description: profileError.message
+        });
+        return false;
+      }
+      
+      const newUser: User = {
+        id: data.user.id,
+        name: userData.name,
+        voterId: userData.voterId,
+        district: userData.district,
+        constituency: userData.constituency,
+        email: userData.email,
+        phone: userData.phone,
+        walletAddress: userData.walletAddress,
+        hasVoted: false
+      };
       
       setState({
         user: newUser,
@@ -114,8 +239,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  const logout = () => {
+  const logout = async () => {
+    await supabase.auth.signOut();
     setState(initialState);
+    localStorage.removeItem("user");
     toast.success("Logged out", {
       description: "You have been logged out successfully"
     });
