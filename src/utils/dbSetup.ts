@@ -19,6 +19,15 @@ export const setupDatabase = async () => {
     if (districtCount === 0) {
       console.log("Seeding database with initial data...");
       
+      // Add RLS policies to candidates table for admin access
+      try {
+        // This is needed to ensure admins can add candidates
+        await supabase.rpc('create_admin_policies');
+        console.log("Admin policies created successfully");
+      } catch (policyError) {
+        console.log("Admin policies might already exist or failed to create:", policyError);
+      }
+      
       // Seed districts and constituencies
       for (const district of MOCK_DISTRICTS) {
         // Insert district

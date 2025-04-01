@@ -2,7 +2,7 @@
 import React, { createContext, useContext, useState, useEffect } from "react";
 import { AuthState, User, LoginCredentials } from "@/types";
 import { toast } from "sonner";
-import { supabase } from "@/lib/supabase";
+import { supabase } from "@/integrations/supabase/client";
 
 interface AuthContextType extends AuthState {
   login: (credentials: LoginCredentials) => Promise<boolean>;
@@ -34,6 +34,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       return {
         user,
         isAuthenticated: true,
+        // Check if user is admin based on email
         isAdmin: user.email === "admin@example.com"
       };
     }
@@ -150,6 +151,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         description: `Welcome back, ${user.name}!`
       });
       
+      // If admin, display admin access message
+      if (isAdmin) {
+        toast.success("Admin access granted", {
+          description: "You now have access to the admin dashboard"
+        });
+      }
+      
       return true;
     } catch (error) {
       console.error("Login error:", error);
@@ -219,15 +227,25 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         hasVoted: false
       };
       
+      // Check if new user is admin
+      const isAdmin = newUser.email === "admin@example.com";
+      
       setState({
         user: newUser,
         isAuthenticated: true,
-        isAdmin: false
+        isAdmin
       });
       
       toast.success("Registration successful", {
         description: "Your account has been created"
       });
+      
+      // If admin, display admin access message
+      if (isAdmin) {
+        toast.success("Admin access granted", {
+          description: "You now have access to the admin dashboard"
+        });
+      }
       
       return true;
     } catch (error) {

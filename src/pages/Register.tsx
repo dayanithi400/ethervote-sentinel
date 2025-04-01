@@ -10,7 +10,8 @@ import { useAuth } from "@/context/AuthContext";
 import { toast } from "sonner";
 import { MOCK_DISTRICTS } from "@/services/mockData";
 import { connectWallet, getCurrentWalletAddress } from "@/utils/web3";
-import { Vote, Wallet } from "lucide-react";
+import { Vote, Wallet, AlertCircle } from "lucide-react";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
 const Register: React.FC = () => {
   const [formData, setFormData] = useState({
@@ -25,6 +26,7 @@ const Register: React.FC = () => {
   });
   const [walletAddress, setWalletAddress] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState("");
   const [constituencies, setConstituencies] = useState<string[]>([]);
   const { register } = useAuth();
   const navigate = useNavigate();
@@ -32,6 +34,7 @@ const Register: React.FC = () => {
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
+    setError(""); // Clear error when user types
   };
 
   const handleDistrictChange = (value: string) => {
@@ -47,6 +50,7 @@ const Register: React.FC = () => {
     } else {
       setConstituencies([]);
     }
+    setError(""); // Clear error when user makes a selection
   };
 
   const handleConstituencyChange = (value: string) => {
@@ -54,20 +58,30 @@ const Register: React.FC = () => {
       ...prev,
       constituency: value
     }));
+    setError(""); // Clear error when user makes a selection
   };
 
   const handleConnectWallet = async () => {
-    const address = await connectWallet();
-    if (address) {
-      setWalletAddress(address);
+    try {
+      const address = await connectWallet();
+      if (address) {
+        setWalletAddress(address);
+        setError(""); // Clear error if wallet connects successfully
+      }
+    } catch (err) {
+      setError("Failed to connect wallet. Please try again.");
     }
   };
 
   React.useEffect(() => {
     const checkWallet = async () => {
-      const address = await getCurrentWalletAddress();
-      if (address) {
-        setWalletAddress(address);
+      try {
+        const address = await getCurrentWalletAddress();
+        if (address) {
+          setWalletAddress(address);
+        }
+      } catch (err) {
+        console.error("Error checking wallet:", err);
       }
     };
     
@@ -75,26 +89,48 @@ const Register: React.FC = () => {
   }, []);
 
   const validateForm = () => {
-    if (!formData.name || !formData.voterId || !formData.district || 
-        !formData.constituency || !formData.email || !formData.phone || 
-        !formData.password || !formData.confirmPassword) {
-      toast.error("Missing fields", {
-        description: "Please fill in all required fields"
-      });
+    if (!formData.name) {
+      setError("Please enter your full name");
+      return false;
+    }
+    
+    if (!formData.voterId) {
+      setError("Please enter your voter ID");
+      return false;
+    }
+    
+    if (!formData.district) {
+      setError("Please select your district");
+      return false;
+    }
+    
+    if (!formData.constituency) {
+      setError("Please select your constituency");
+      return false;
+    }
+    
+    if (!formData.email) {
+      setError("Please enter your email address");
+      return false;
+    }
+    
+    if (!formData.phone) {
+      setError("Please enter your phone number");
+      return false;
+    }
+    
+    if (!formData.password) {
+      setError("Please create a password");
       return false;
     }
     
     if (formData.password !== formData.confirmPassword) {
-      toast.error("Password mismatch", {
-        description: "Passwords do not match"
-      });
+      setError("Passwords do not match");
       return false;
     }
     
     if (!walletAddress) {
-      toast.error("Wallet required", {
-        description: "Please connect your MetaMask wallet"
-      });
+      setError("Please connect your MetaMask wallet");
       return false;
     }
     
@@ -103,20 +139,37 @@ const Register: React.FC = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setError("");
     
     if (!validateForm()) return;
     
     setIsLoading(true);
     
     try {
+      // For admin testing: auto-detect admin and simplify registration
+      const isAdminRegistration = formData.email === "admin@example.com";
+      
+      if (isAdminRegistration) {
+        toast.info("Admin registration detected", {
+          description: "You are registering as an admin user"
+        });
+      }
+      
       const success = await register({
         ...formData,
         walletAddress
       });
       
       if (success) {
+        if (isAdminRegistration) {
+          toast.success("Admin registration successful", {
+            description: "You now have access to the admin dashboard"
+          });
+        }
         navigate("/dashboard");
       }
+    } catch (err: any) {
+      setError(err.message || "Registration failed. Please try again.");
     } finally {
       setIsLoading(false);
     }
@@ -146,6 +199,20 @@ const Register: React.FC = () => {
             </CardDescription>
           </CardHeader>
           <CardContent>
+            {error && (
+              <Alert variant="destructive" className="mb-4">
+                <AlertCircle className="h-4 w-4" />
+                <AlertTitle>Error</AlertTitle>
+                <AlertDescription>{error}</AlertDescription>
+              </Alert>
+            )}
+            
+            <div className="mb-4 p-3 bg-blue-50 rounded border border-blue-200">
+              <p className="text-sm text-blue-800">
+                <strong>Tip:</strong> To access admin features, register with the email: <code className="bg-blue-100 px-1 py-0.5 rounded">admin@example.com</code>
+              </p>
+            </div>
+            
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="space-y-2">
                 <Label htmlFor="name">Full Name</Label>
