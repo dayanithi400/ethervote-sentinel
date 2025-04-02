@@ -117,6 +117,8 @@ export const getCandidatesByConstituency = async (
 
     if (error) throw error;
 
+    if (!candidatesData) return [];
+
     return candidatesData.map(c => ({
       id: c.id,
       name: c.name,
@@ -206,6 +208,8 @@ export const addCandidate = async (candidateData: Partial<Candidate>, imageFile?
       .single();
 
     if (error) throw error;
+
+    if (!newCandidate) return null;
 
     return {
       id: newCandidate.id,
