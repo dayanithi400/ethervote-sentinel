@@ -1,5 +1,5 @@
 # Welcome to project Ether votes
-**URL**: https://lovable.dev/projects/d1d8b2f2-f17e-4ed5-aa90-d1a18a32dbbf
+**URL**: [(https://ethervote-sentinel.vercel.app/)]
 Follow these steps:
 
 ```sh
