@@ -43,7 +43,7 @@ export interface Candidate {
   district: string;
   constituency: string;
   symbol: string;
-  imageUrl?: string;
+  imageUrl?: string | null;
   voteCount: number;
 }
 
