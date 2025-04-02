@@ -1,5 +1,5 @@
 # Welcome to project Ether votes
-**URL**: [(https://ethervote-sentinel.vercel.app/)]
+**URL**: [https://ethervote-sentinel.vercel.app/]
 Follow these steps:
 
 ```sh
