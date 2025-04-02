@@ -23,6 +23,7 @@ type DbCandidate = {
   district_id: string;
   constituency_id: string;
   symbol: string;
+  image_url: string | null;
   vote_count: number;
   created_at: string;
 };
@@ -128,6 +129,7 @@ export const getCandidatesByConstituency = async (
       district: district,
       constituency: constituency,
       symbol: c.symbol,
+      imageUrl: c.image_url,
       voteCount: c.vote_count || 0
     }));
   } catch (error) {
@@ -155,6 +157,7 @@ export const getAllCandidates = async (): Promise<Candidate[]> => {
       district: c.districts.name,
       constituency: c.constituencies.name,
       symbol: c.symbol,
+      imageUrl: c.image_url,
       voteCount: c.vote_count || 0
     }));
   } catch (error) {
@@ -163,7 +166,37 @@ export const getAllCandidates = async (): Promise<Candidate[]> => {
   }
 };
 
-export const addCandidate = async (candidateData: Partial<Candidate>): Promise<Candidate | null> => {
+/**
+ * Upload candidate image to Supabase Storage
+ */
+export const uploadCandidateImage = async (file: File): Promise<string | null> => {
+  try {
+    const fileExt = file.name.split('.').pop();
+    const fileName = `${Math.random().toString(36).substring(2, 15)}_${Date.now()}.${fileExt}`;
+    const filePath = `${fileName}`;
+
+    const { data, error } = await supabase.storage
+      .from('candidate-images')
+      .upload(filePath, file, {
+        cacheControl: '3600',
+        upsert: false
+      });
+
+    if (error) throw error;
+    
+    // Get the public URL for the uploaded image
+    const { data: { publicUrl } } = supabase.storage
+      .from('candidate-images')
+      .getPublicUrl(filePath);
+      
+    return publicUrl;
+  } catch (error) {
+    console.error('Error uploading image:', error);
+    return null;
+  }
+};
+
+export const addCandidate = async (candidateData: Partial<Candidate>, imageFile?: File): Promise<Candidate | null> => {
   try {
     // Get district ID
     const { data: districtData } = await supabase
@@ -187,6 +220,12 @@ export const addCandidate = async (candidateData: Partial<Candidate>): Promise<C
     // Ensure we have a valid symbol (even if it's a custom one)
     const symbol = candidateData.symbol || '🏛️';
     
+    // Upload image if provided
+    let imageUrl = null;
+    if (imageFile) {
+      imageUrl = await uploadCandidateImage(imageFile);
+    }
+    
     // Insert candidate
     const { data: newCandidate, error } = await supabase
       .from('candidates')
@@ -196,6 +235,7 @@ export const addCandidate = async (candidateData: Partial<Candidate>): Promise<C
         district_id: districtData.id,
         constituency_id: constituencyData.id,
         symbol: symbol,
+        image_url: imageUrl,
         vote_count: 0
       })
       .select(`
@@ -214,6 +254,7 @@ export const addCandidate = async (candidateData: Partial<Candidate>): Promise<C
       district: newCandidate.districts.name,
       constituency: newCandidate.constituencies.name,
       symbol: newCandidate.symbol,
+      imageUrl: newCandidate.image_url,
       voteCount: newCandidate.vote_count || 0
     };
   } catch (error) {
@@ -327,6 +368,7 @@ export const getResults = async (): Promise<Candidate[]> => {
       district: c.districts.name,
       constituency: c.constituencies.name,
       symbol: c.symbol,
+      imageUrl: c.image_url,
       voteCount: c.vote_count || 0
     }));
   } catch (error) {

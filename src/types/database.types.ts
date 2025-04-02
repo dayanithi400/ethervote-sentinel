@@ -93,6 +93,7 @@ export interface Database {
           district_id: string
           constituency_id: string
           symbol: string
+          image_url: string | null
           vote_count: number
           created_at: string
         }
@@ -103,6 +104,7 @@ export interface Database {
           district_id: string
           constituency_id: string
           symbol: string
+          image_url?: string | null
           vote_count?: number
           created_at?: string
         }
@@ -113,6 +115,7 @@ export interface Database {
           district_id?: string
           constituency_id?: string
           symbol?: string
+          image_url?: string | null
           vote_count?: number
           created_at?: string
         }
