@@ -15,6 +15,7 @@ export type Database = {
           created_at: string
           district_id: string
           id: string
+          image_url: string | null
           name: string
           party: string
           symbol: string
@@ -25,6 +26,7 @@ export type Database = {
           created_at?: string
           district_id: string
           id?: string
+          image_url?: string | null
           name: string
           party: string
           symbol: string
@@ -35,6 +37,7 @@ export type Database = {
           created_at?: string
           district_id?: string
           id?: string
+          image_url?: string | null
           name?: string
           party?: string
           symbol?: string

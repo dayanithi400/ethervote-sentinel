@@ -1,3 +1,4 @@
+
 import { supabase } from '@/integrations/supabase/client';
 import { User, Candidate, District, VoteData } from '@/types';
 
@@ -48,6 +49,39 @@ type DbVote = {
   constituency_id: string;
   timestamp: string;
   transaction_hash: string;
+};
+
+/**
+ * Get all candidates with district and constituency names
+ */
+export const getAllCandidates = async (): Promise<Candidate[]> => {
+  try {
+    const { data: candidatesData, error } = await supabase
+      .from('candidates')
+      .select(`
+        id, name, party, district_id, constituency_id, symbol, image_url, vote_count,
+        districts:district_id(name),
+        constituencies:constituency_id(name)
+      `);
+
+    if (error) throw error;
+
+    if (!candidatesData) return [];
+
+    return candidatesData.map(c => ({
+      id: c.id,
+      name: c.name,
+      party: c.party,
+      district: c.districts?.name || '',
+      constituency: c.constituencies?.name || '',
+      symbol: c.symbol,
+      imageUrl: c.image_url,
+      voteCount: c.vote_count || 0
+    }));
+  } catch (error) {
+    console.error('Error fetching all candidates:', error);
+    return [];
+  }
 };
 
 /**
