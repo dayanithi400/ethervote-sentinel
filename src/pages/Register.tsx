@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -147,7 +146,7 @@ const Register: React.FC = () => {
     
     try {
       // For admin testing: auto-detect admin and simplify registration
-      const isAdminRegistration = formData.email === "admin@example.com";
+      const isAdminRegistration = formData.email === "admin@gmail.com";
       
       if (isAdminRegistration) {
         toast.info("Admin registration detected", {
@@ -209,7 +208,8 @@ const Register: React.FC = () => {
             
             <div className="mb-4 p-3 bg-blue-50 rounded border border-blue-200">
               <p className="text-sm text-blue-800">
-                <strong>Tip:</strong> To access admin features, register with the email: <code className="bg-blue-100 px-1 py-0.5 rounded">admin@example.com</code>
+                <strong>Tip:</strong> To access admin features, register with an admin email: 
+                <code className="bg-blue-100 px-1 py-0.5 rounded ml-1">admin@gmail.com</code>
               </p>
             </div>
             

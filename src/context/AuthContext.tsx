@@ -1,7 +1,8 @@
+
 import React, { createContext, useContext, useState, useEffect } from "react";
 import { AuthState, User, LoginCredentials } from "@/types";
 import { toast } from "sonner";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase } from "@/lib/supabase";
 
 interface AuthContextType extends AuthState {
   login: (credentials: LoginCredentials) => Promise<boolean>;
@@ -34,7 +35,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         user,
         isAuthenticated: true,
         // Check if user is admin based on email
-        isAdmin: user.email === "admin@example.com"
+        isAdmin: user.email === "admin@example.com" || user.email === "admin@gmail.com"
       };
     }
     return initialState;
@@ -69,7 +70,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           setState({
             user,
             isAuthenticated: true,
-            isAdmin: userData.email === "admin@example.com"
+            isAdmin: userData.email === "admin@example.com" || userData.email === "admin@gmail.com"
           });
           
           localStorage.setItem("user", JSON.stringify(user));
@@ -137,8 +138,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         hasVoted: userData.has_voted
       };
       
-      // Check if user is admin
-      const isAdmin = user.email === "admin@example.com";
+      // Check if user is admin (supports both example.com and gmail.com for testing)
+      const isAdmin = user.email === "admin@example.com" || user.email === "admin@gmail.com";
       
       setState({
         user,
@@ -170,7 +171,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const register = async (userData: any): Promise<boolean> => {
     try {
       // Check if the user is trying to register with an admin email
-      const isAdminRegistration = userData.email === "admin@example.com";
+      const isAdminRegistration = userData.email === "admin@example.com" || userData.email === "admin@gmail.com";
       
       // For development purposes, allow direct profile creation without email verification
       // This is a workaround for the email validation issue in Supabase
@@ -249,8 +250,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           hasVoted: false
         };
         
-        // Check if new user is admin
-        const isAdmin = newUser.email === "admin@example.com";
+        // Check if new user is admin (supports both example.com and gmail.com for testing)
+        const isAdmin = newUser.email === "admin@example.com" || newUser.email === "admin@gmail.com";
         
         setState({
           user: newUser,

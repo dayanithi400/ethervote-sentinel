@@ -45,7 +45,7 @@ const Login: React.FC = () => {
       setEmail("john@example.com");
       setPassword("password123");
     } else {
-      setEmail("admin@example.com");
+      setEmail("admin@gmail.com");
       setPassword("admin123");
     }
   };
