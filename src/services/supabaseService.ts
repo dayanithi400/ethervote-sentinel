@@ -184,6 +184,9 @@ export const addCandidate = async (candidateData: Partial<Candidate>): Promise<C
       
     if (!constituencyData) return null;
     
+    // Ensure we have a valid symbol (even if it's a custom one)
+    const symbol = candidateData.symbol || '🏛️';
+    
     // Insert candidate
     const { data: newCandidate, error } = await supabase
       .from('candidates')
@@ -192,7 +195,7 @@ export const addCandidate = async (candidateData: Partial<Candidate>): Promise<C
         party: candidateData.party || '',
         district_id: districtData.id,
         constituency_id: constituencyData.id,
-        symbol: candidateData.symbol || '🏛️',
+        symbol: symbol,
         vote_count: 0
       })
       .select(`

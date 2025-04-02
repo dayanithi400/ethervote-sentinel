@@ -34,6 +34,8 @@ const Admin: React.FC = () => {
     symbol: "🌟"
   });
   const [constituencies, setConstituencies] = useState<string[]>([]);
+  const [useCustomSymbol, setUseCustomSymbol] = useState(false);
+  const [customSymbol, setCustomSymbol] = useState("");
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -84,6 +86,33 @@ const Admin: React.FC = () => {
     }));
   };
 
+  const handleCustomSymbolChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setCustomSymbol(e.target.value);
+    if (e.target.value) {
+      setFormData(prev => ({
+        ...prev,
+        symbol: e.target.value
+      }));
+    }
+  };
+
+  const toggleSymbolMode = () => {
+    setUseCustomSymbol(!useCustomSymbol);
+    // If switching back to preset symbols, reset to default emoji
+    if (useCustomSymbol) {
+      setFormData(prev => ({
+        ...prev,
+        symbol: "🌟"
+      }));
+    } else if (customSymbol) {
+      // If switching to custom and we have a value, use it
+      setFormData(prev => ({
+        ...prev,
+        symbol: customSymbol
+      }));
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
@@ -112,6 +141,8 @@ const Admin: React.FC = () => {
           constituency: "",
           symbol: "🌟"
         });
+        setCustomSymbol("");
+        setUseCustomSymbol(false);
         
         // Refresh candidates list
         setCandidates([...candidates, newCandidate]);
@@ -218,22 +249,45 @@ const Admin: React.FC = () => {
                 </div>
                 
                 <div className="space-y-2">
-                  <Label htmlFor="symbol">Election Symbol</Label>
-                  <Select onValueChange={handleSymbolChange} value={formData.symbol}>
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {EMOJI_OPTIONS.map((emoji) => (
-                        <SelectItem key={emoji} value={emoji}>
-                          <div className="flex items-center">
-                            <span className="text-xl mr-2">{emoji}</span>
-                            <span>{emoji}</span>
-                          </div>
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <div className="flex justify-between">
+                    <Label htmlFor="symbol">Election Symbol</Label>
+                    <Button 
+                      type="button" 
+                      variant="outline" 
+                      size="sm"
+                      onClick={toggleSymbolMode}
+                      className="text-xs"
+                    >
+                      {useCustomSymbol ? "Use Preset Symbols" : "Use Custom Symbol"}
+                    </Button>
+                  </div>
+                  
+                  {useCustomSymbol ? (
+                    <Input
+                      id="customSymbol"
+                      name="customSymbol"
+                      placeholder="Enter custom symbol"
+                      value={customSymbol}
+                      onChange={handleCustomSymbolChange}
+                      maxLength={4}
+                    />
+                  ) : (
+                    <Select onValueChange={handleSymbolChange} value={formData.symbol}>
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {EMOJI_OPTIONS.map((emoji) => (
+                          <SelectItem key={emoji} value={emoji}>
+                            <div className="flex items-center">
+                              <span className="text-xl mr-2">{emoji}</span>
+                              <span>{emoji}</span>
+                            </div>
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  )}
                 </div>
                 
                 <Button
