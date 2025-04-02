@@ -136,28 +136,61 @@ export const getCandidatesByConstituency = async (
 };
 
 /**
+ * Creates a storage bucket for candidate images if it doesn't exist
+ */
+const ensureCandidateImagesBucket = async (): Promise<void> => {
+  try {
+    // Check if bucket exists first
+    const { data: buckets } = await supabase.storage.listBuckets();
+    const bucketExists = buckets?.some(bucket => bucket.name === 'candidate-images');
+    
+    if (!bucketExists) {
+      const { error } = await supabase.storage.createBucket('candidate-images', {
+        public: true,
+        fileSizeLimit: 5242880, // 5MB
+        allowedMimeTypes: ['image/png', 'image/jpeg', 'image/jpg', 'image/gif']
+      });
+      
+      if (error) throw error;
+      console.log('Created candidate-images bucket');
+    }
+  } catch (error) {
+    console.error('Error ensuring candidate images bucket exists:', error);
+  }
+};
+
+/**
  * Upload candidate image to Supabase Storage
  */
 export const uploadCandidateImage = async (file: File): Promise<string | null> => {
   try {
+    // Make sure the bucket exists
+    await ensureCandidateImagesBucket();
+    
     const fileExt = file.name.split('.').pop();
     const fileName = `${Math.random().toString(36).substring(2, 15)}_${Date.now()}.${fileExt}`;
     const filePath = `${fileName}`;
 
     const { data, error } = await supabase.storage
       .from('candidate-images')
-      .upload(filePath, file, {
-        cacheControl: '3600',
-        upsert: false
-      });
+      .upload(filePath, file);
 
-    if (error) throw error;
+    if (error) {
+      console.error('Upload error details:', error);
+      throw error;
+    }
 
-    const publicUrl = supabase.storage
+    if (!data) {
+      console.error('No data returned from upload');
+      return null;
+    }
+
+    // Get the public URL
+    const { data: { publicUrl } } = supabase.storage
       .from('candidate-images')
-      .getPublicUrl(filePath)
-      .data.publicUrl;
+      .getPublicUrl(filePath);
 
+    console.log('Uploaded image, public URL:', publicUrl);
     return publicUrl;
   } catch (error) {
     console.error('Error uploading image:', error);
@@ -189,8 +222,11 @@ export const addCandidate = async (candidateData: Partial<Candidate>, imageFile?
 
     const symbol = candidateData.symbol || '🏛️';
     let imageUrl = null;
+    
+    // Upload image if provided
     if (imageFile) {
       imageUrl = await uploadCandidateImage(imageFile);
+      console.log("Image uploaded with URL:", imageUrl);
     }
 
     const { data: newCandidate, error } = await supabase

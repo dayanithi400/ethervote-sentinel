@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { 
@@ -52,7 +51,6 @@ const Admin: React.FC = () => {
       return;
     }
 
-    // Load candidates from Supabase (fallback to mock if needed)
     const fetchCandidates = async () => {
       try {
         const supabaseCandidates = await getAllCandidates();
@@ -119,14 +117,12 @@ const Admin: React.FC = () => {
   const toggleSymbolMode = () => {
     setUseCustomSymbol(!useCustomSymbol);
     setUseImage(false); // Turn off image mode when switching to symbol mode
-    // If switching back to preset symbols, reset to default emoji
     if (useCustomSymbol) {
       setFormData(prev => ({
         ...prev,
         symbol: "🌟"
       }));
     } else if (customSymbol) {
-      // If switching to custom and we have a value, use it
       setFormData(prev => ({
         ...prev,
         symbol: customSymbol
@@ -137,7 +133,6 @@ const Admin: React.FC = () => {
   const toggleImageMode = () => {
     setUseImage(!useImage);
     if (useImage) {
-      // Switching back to symbol mode
       setUseCustomSymbol(false);
       setFormData(prev => ({
         ...prev,
@@ -146,7 +141,6 @@ const Admin: React.FC = () => {
       setImageFile(null);
       setImagePreview(null);
     } else {
-      // Switching to image mode, disable custom symbol
       setUseCustomSymbol(false);
     }
   };
@@ -155,7 +149,6 @@ const Admin: React.FC = () => {
     const files = e.target.files;
     if (files && files.length > 0) {
       const file = files[0];
-      // Validate file type
       if (!file.type.match('image.*')) {
         toast.error("Invalid file type", {
           description: "Please upload an image file"
@@ -163,7 +156,6 @@ const Admin: React.FC = () => {
         return;
       }
       
-      // Check file size (2MB limit)
       if (file.size > 2 * 1024 * 1024) {
         toast.error("File too large", {
           description: "Maximum file size is 2MB"
@@ -171,9 +163,9 @@ const Admin: React.FC = () => {
         return;
       }
       
+      console.log("Selected file:", file.name, file.type, file.size);
       setImageFile(file);
       
-      // Create preview
       const reader = new FileReader();
       reader.onloadend = () => {
         setImagePreview(reader.result as string);
@@ -202,10 +194,10 @@ const Admin: React.FC = () => {
     setLoading(true);
     
     try {
-      // Try to use Supabase service first, fallback to mock service
       let newCandidate;
       
       try {
+        console.log("Adding candidate with image:", useImage ? imageFile : undefined);
         newCandidate = await addCandidate(formData, useImage ? imageFile! : undefined);
       } catch (error) {
         console.error("Supabase error, falling back to mock:", error);
@@ -217,7 +209,6 @@ const Admin: React.FC = () => {
           description: `${newCandidate.name} has been registered successfully`
         });
         
-        // Reset form
         setFormData({
           name: "",
           party: "",
@@ -231,7 +222,6 @@ const Admin: React.FC = () => {
         setImageFile(null);
         setImagePreview(null);
         
-        // Refresh candidates list
         setCandidates([...candidates, newCandidate]);
       }
     } catch (error) {
@@ -245,7 +235,7 @@ const Admin: React.FC = () => {
   };
 
   if (!isAuthenticated || !isAdmin) {
-    return null; // Will redirect from useEffect
+    return null;
   }
 
   return (
@@ -262,7 +252,6 @@ const Admin: React.FC = () => {
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {/* Add Candidate Form */}
           <Card className="md:col-span-1">
             <CardHeader>
               <CardTitle className="flex items-center">
@@ -444,7 +433,6 @@ const Admin: React.FC = () => {
             </CardContent>
           </Card>
 
-          {/* Candidates List */}
           <Card className="md:col-span-2">
             <CardHeader>
               <CardTitle className="flex items-center">
