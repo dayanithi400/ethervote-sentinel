@@ -11,6 +11,7 @@ import {
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { toast } from "sonner";
 import { useAuth } from "@/context/AuthContext";
 import { mockGetCandidatesByConstituency } from "@/services/mockData";
 import { getCandidatesByConstituency } from "@/services/supabaseService";
@@ -34,6 +35,7 @@ const Dashboard: React.FC = () => {
       if (user && user.district && user.constituency) {
         try {
           // First try to get candidates from Supabase
+          console.log(`Attempting to fetch candidates for ${user.district}, ${user.constituency}`);
           const supabaseCandidates = await getCandidatesByConstituency(
             user.district,
             user.constituency
@@ -42,6 +44,9 @@ const Dashboard: React.FC = () => {
           if (supabaseCandidates && supabaseCandidates.length > 0) {
             console.log("Found candidates in Supabase:", supabaseCandidates);
             setCandidates(supabaseCandidates);
+            toast.success("Candidates loaded successfully", {
+              description: `Found ${supabaseCandidates.length} candidates for ${user.constituency}`
+            });
           } else {
             // Fall back to mock data if no candidates found
             console.log("No candidates found in Supabase, using mock data");
@@ -50,10 +55,16 @@ const Dashboard: React.FC = () => {
               user.constituency
             );
             setCandidates(mockCandidates);
+            toast.info("Using sample candidate data", {
+              description: "Real candidate data not available"
+            });
           }
         } catch (error) {
           console.error("Error loading candidates:", error);
           // Fall back to mock data on error
+          toast.error("Error loading candidates", {
+            description: "Using sample data instead"
+          });
           const mockCandidates = await mockGetCandidatesByConstituency(
             user.district,
             user.constituency

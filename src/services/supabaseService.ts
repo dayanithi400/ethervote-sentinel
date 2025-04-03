@@ -1,4 +1,3 @@
-
 import { supabase } from '@/integrations/supabase/client';
 import { User, Candidate, District, VoteData } from '@/types';
 
@@ -95,23 +94,33 @@ export const getCandidatesByConstituency = async (
 ): Promise<Candidate[]> => {
   try {
     console.log(`Fetching candidates for ${district}, ${constituency}`);
-    const { data: districtData } = await supabase
+    const { data: districtData, error: districtError } = await supabase
       .from('districts')
       .select('id')
       .eq('name', district)
       .single();
+
+    if (districtError) {
+      console.error(`Error finding district '${district}':`, districtError);
+      return [];
+    }
 
     if (!districtData) {
       console.error(`District '${district}' not found`);
       return [];
     }
 
-    const { data: constituencyData } = await supabase
+    const { data: constituencyData, error: constituencyError } = await supabase
       .from('constituencies')
       .select('id')
       .eq('name', constituency)
       .eq('district_id', districtData.id)
       .single();
+
+    if (constituencyError) {
+      console.error(`Error finding constituency '${constituency}' in district '${district}':`, constituencyError);
+      return [];
+    }
 
     if (!constituencyData) {
       console.error(`Constituency '${constituency}' not found in district '${district}'`);
@@ -214,36 +223,101 @@ export const uploadCandidateImage = async (file: File): Promise<string | null> =
 };
 
 /**
+ * Gets all districts with constituencies
+ */
+export const getAllDistricts = async (): Promise<District[]> => {
+  try {
+    // First get all districts
+    const { data: districtsData, error: districtError } = await supabase
+      .from('districts')
+      .select('*');
+    
+    if (districtError) {
+      console.error('Error fetching districts:', districtError);
+      throw districtError;
+    }
+    
+    if (!districtsData || districtsData.length === 0) {
+      console.log('No districts found in database');
+      return [];
+    }
+    
+    // Get constituencies for each district
+    const districts: District[] = [];
+    
+    for (const district of districtsData) {
+      const { data: constituenciesData, error: constituencyError } = await supabase
+        .from('constituencies')
+        .select('name')
+        .eq('district_id', district.id);
+      
+      if (constituencyError) {
+        console.error(`Error fetching constituencies for district ${district.name}:`, constituencyError);
+        continue;
+      }
+      
+      districts.push({
+        id: district.id,
+        name: district.name,
+        constituencies: constituenciesData ? constituenciesData.map(c => c.name) : []
+      });
+    }
+    
+    console.log('Fetched districts from database:', districts);
+    return districts;
+  } catch (error) {
+    console.error('Error fetching all districts:', error);
+    return [];
+  }
+};
+
+/**
  * Add Candidate
  */
 export const addCandidate = async (candidateData: Partial<Candidate>, imageFile?: File): Promise<Candidate | null> => {
   try {
     console.log('Starting candidate registration with data:', candidateData);
     
-    // Get district ID
-    const { data: districtData, error: districtError } = await supabase
-      .from('districts')
-      .select('id')
-      .eq('name', candidateData.district)
-      .single();
-
-    if (districtError || !districtData) {
-      console.error('Error finding district:', districtError || 'District not found');
+    // First, get all districts and constituencies from the database
+    const districts = await getAllDistricts();
+    console.log('Available districts and constituencies:', districts);
+    
+    if (districts.length === 0) {
+      console.error('No districts found in database. Cannot add candidate.');
       return null;
     }
-
-    // Get constituency ID
+    
+    // Find district by name
+    const district = districts.find(d => d.name === candidateData.district);
+    if (!district) {
+      console.error(`District '${candidateData.district}' not found in database`);
+      return null;
+    }
+    
+    // Get district ID directly
+    const districtId = district.id;
+    console.log(`Found district ID for '${candidateData.district}':`, districtId);
+    
+    // Try to fetch constituency ID directly
     const { data: constituencyData, error: constituencyError } = await supabase
       .from('constituencies')
       .select('id')
       .eq('name', candidateData.constituency)
-      .eq('district_id', districtData.id)
+      .eq('district_id', districtId)
       .single();
 
-    if (constituencyError || !constituencyData) {
-      console.error('Error finding constituency:', constituencyError || 'Constituency not found');
+    if (constituencyError) {
+      console.error(`Error finding constituency '${candidateData.constituency}' in district '${candidateData.district}':`, constituencyError);
       return null;
     }
+
+    if (!constituencyData) {
+      console.error(`Constituency '${candidateData.constituency}' not found in district '${candidateData.district}'`);
+      return null;
+    }
+
+    const constituencyId = constituencyData.id;
+    console.log(`Found constituency ID for '${candidateData.constituency}':`, constituencyId);
 
     const symbol = candidateData.symbol || '🏛️';
     let imageUrl = null;
@@ -255,14 +329,14 @@ export const addCandidate = async (candidateData: Partial<Candidate>, imageFile?
     }
 
     // Insert the candidate
-    console.log('Inserting candidate with district_id:', districtData.id, 'constituency_id:', constituencyData.id);
+    console.log('Inserting candidate with district_id:', districtId, 'constituency_id:', constituencyId);
     
     const candidateInsertData = {
       name: candidateData.name || '',
       party: candidateData.party || '',
       party_leader: candidateData.partyLeader || null,
-      district_id: districtData.id,
-      constituency_id: constituencyData.id,
+      district_id: districtId,
+      constituency_id: constituencyId,
       symbol: symbol,
       image_url: imageUrl,
       vote_count: 0
