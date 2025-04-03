@@ -1,5 +1,6 @@
 import { supabase } from '@/integrations/supabase/client';
-import { User, Candidate, District, VoteData } from '@/types';
+import { Candidate, District } from '@/types';
+import { toast } from 'sonner';
 
 // Type for Supabase responses
 type DbDistrict = {
@@ -278,103 +279,98 @@ export const addCandidate = async (candidateData: Partial<Candidate>, imageFile?
   try {
     console.log('Starting candidate registration with data:', candidateData);
     
-    // First, get all districts and constituencies from the database
-    const districts = await getAllDistricts();
-    console.log('Available districts and constituencies:', districts);
-    
-    if (districts.length === 0) {
-      console.error('No districts found in database. Cannot add candidate.');
+    // Validate required fields
+    if (!candidateData.name || !candidateData.party || 
+        !candidateData.district || !candidateData.constituency) {
+      toast.error('Incomplete Candidate Information', {
+        description: 'Please fill in all required fields'
+      });
       return null;
     }
-    
-    // Find district by name
-    const district = districts.find(d => d.name === candidateData.district);
-    if (!district) {
-      console.error(`District '${candidateData.district}' not found in database`);
+
+    // Directly fetch district and constituency IDs
+    const { data: districtData, error: districtError } = await supabase
+      .from('districts')
+      .select('id')
+      .eq('name', candidateData.district)
+      .single();
+
+    if (districtError || !districtData) {
+      toast.error('District Not Found', {
+        description: `Could not find district: ${candidateData.district}`
+      });
       return null;
     }
-    
-    // Get district ID directly
-    const districtId = district.id;
-    console.log(`Found district ID for '${candidateData.district}':`, districtId);
-    
-    // Try to fetch constituency ID directly
+
     const { data: constituencyData, error: constituencyError } = await supabase
       .from('constituencies')
       .select('id')
       .eq('name', candidateData.constituency)
-      .eq('district_id', districtId)
+      .eq('district_id', districtData.id)
       .single();
 
-    if (constituencyError) {
-      console.error(`Error finding constituency '${candidateData.constituency}' in district '${candidateData.district}':`, constituencyError);
+    if (constituencyError || !constituencyData) {
+      toast.error('Constituency Not Found', {
+        description: `Could not find constituency: ${candidateData.constituency}`
+      });
       return null;
     }
 
-    if (!constituencyData) {
-      console.error(`Constituency '${candidateData.constituency}' not found in district '${candidateData.district}'`);
-      return null;
-    }
-
-    const constituencyId = constituencyData.id;
-    console.log(`Found constituency ID for '${candidateData.constituency}':`, constituencyId);
-
-    const symbol = candidateData.symbol || '🏛️';
-    let imageUrl = null;
-    
     // Upload image if provided
+    let imageUrl = null;
     if (imageFile) {
       imageUrl = await uploadCandidateImage(imageFile);
-      console.log("Image uploaded with URL:", imageUrl);
     }
 
-    // Insert the candidate
-    console.log('Inserting candidate with district_id:', districtId, 'constituency_id:', constituencyId);
-    
+    // Prepare candidate data for insertion
     const candidateInsertData = {
-      name: candidateData.name || '',
-      party: candidateData.party || '',
+      name: candidateData.name,
+      party: candidateData.party,
       party_leader: candidateData.partyLeader || null,
-      district_id: districtId,
-      constituency_id: constituencyId,
-      symbol: symbol,
+      district_id: districtData.id,
+      constituency_id: constituencyData.id,
+      symbol: candidateData.symbol || '🏛️',
       image_url: imageUrl,
       vote_count: 0
     };
-    
-    console.log('Final candidate data to insert:', candidateInsertData);
-    
+
+    // Insert candidate
     const { data: newCandidate, error: insertError } = await supabase
       .from('candidates')
       .insert(candidateInsertData)
-      .select('id, name, party, party_leader, symbol, image_url, vote_count')
+      .select()
       .single();
 
     if (insertError) {
-      console.error('Error inserting candidate:', insertError);
-      throw insertError;
-    }
-
-    if (!newCandidate) {
-      console.error('No candidate data returned after insert');
+      toast.error('Candidate Registration Failed', {
+        description: insertError.message
+      });
+      console.error('Candidate insertion error:', insertError);
       return null;
     }
 
-    console.log('Successfully registered candidate:', newCandidate);
+    // Success toast
+    toast.success('Candidate Registered', {
+      description: `${newCandidate.name} has been successfully added`
+    });
 
+    // Return formatted candidate
     return {
       id: newCandidate.id,
       name: newCandidate.name,
       party: newCandidate.party,
       partyLeader: newCandidate.party_leader || undefined,
-      district: candidateData.district || '',
-      constituency: candidateData.constituency || '',
+      district: candidateData.district,
+      constituency: candidateData.constituency,
       symbol: newCandidate.symbol,
       imageUrl: newCandidate.image_url,
       voteCount: newCandidate.vote_count || 0
     };
   } catch (error) {
-    console.error('Error adding candidate:', error);
+    console.error('Unexpected error in addCandidate:', error);
+    toast.error('Registration Error', {
+      description: 'An unexpected error occurred'
+    });
     return null;
   }
 };
