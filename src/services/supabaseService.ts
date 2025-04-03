@@ -1,3 +1,4 @@
+
 import { supabase } from '@/integrations/supabase/client';
 import { User, Candidate, District, VoteData } from '@/types';
 
@@ -93,13 +94,17 @@ export const getCandidatesByConstituency = async (
   constituency: string
 ): Promise<Candidate[]> => {
   try {
+    console.log(`Fetching candidates for ${district}, ${constituency}`);
     const { data: districtData } = await supabase
       .from('districts')
       .select('id')
       .eq('name', district)
       .single();
 
-    if (!districtData) return [];
+    if (!districtData) {
+      console.error(`District '${district}' not found`);
+      return [];
+    }
 
     const { data: constituencyData } = await supabase
       .from('constituencies')
@@ -108,7 +113,10 @@ export const getCandidatesByConstituency = async (
       .eq('district_id', districtData.id)
       .single();
 
-    if (!constituencyData) return [];
+    if (!constituencyData) {
+      console.error(`Constituency '${constituency}' not found in district '${district}'`);
+      return [];
+    }
 
     const { data: candidatesData, error } = await supabase
       .from('candidates')
@@ -116,10 +124,15 @@ export const getCandidatesByConstituency = async (
       .eq('district_id', districtData.id)
       .eq('constituency_id', constituencyData.id);
 
-    if (error) throw error;
+    if (error) {
+      console.error('Error fetching candidates by constituency:', error);
+      throw error;
+    }
 
     if (!candidatesData) return [];
 
+    console.log(`Found ${candidatesData.length} candidates`);
+    
     return candidatesData.map(c => ({
       id: c.id,
       name: c.name,
@@ -132,7 +145,7 @@ export const getCandidatesByConstituency = async (
       voteCount: c.vote_count || 0
     }));
   } catch (error) {
-    console.error('Error fetching candidates:', error);
+    console.error('Error fetching candidates by constituency:', error);
     return [];
   }
 };
@@ -205,22 +218,32 @@ export const uploadCandidateImage = async (file: File): Promise<string | null> =
  */
 export const addCandidate = async (candidateData: Partial<Candidate>, imageFile?: File): Promise<Candidate | null> => {
   try {
-    const { data: districtData } = await supabase
+    console.log('Starting candidate registration with data:', candidateData);
+    
+    // Get district ID
+    const { data: districtData, error: districtError } = await supabase
       .from('districts')
       .select('id')
       .eq('name', candidateData.district)
       .single();
 
-    if (!districtData) return null;
+    if (districtError || !districtData) {
+      console.error('Error finding district:', districtError || 'District not found');
+      return null;
+    }
 
-    const { data: constituencyData } = await supabase
+    // Get constituency ID
+    const { data: constituencyData, error: constituencyError } = await supabase
       .from('constituencies')
       .select('id')
       .eq('name', candidateData.constituency)
       .eq('district_id', districtData.id)
       .single();
 
-    if (!constituencyData) return null;
+    if (constituencyError || !constituencyData) {
+      console.error('Error finding constituency:', constituencyError || 'Constituency not found');
+      return null;
+    }
 
     const symbol = candidateData.symbol || '🏛️';
     let imageUrl = null;
@@ -231,24 +254,39 @@ export const addCandidate = async (candidateData: Partial<Candidate>, imageFile?
       console.log("Image uploaded with URL:", imageUrl);
     }
 
-    const { data: newCandidate, error } = await supabase
+    // Insert the candidate
+    console.log('Inserting candidate with district_id:', districtData.id, 'constituency_id:', constituencyData.id);
+    
+    const candidateInsertData = {
+      name: candidateData.name || '',
+      party: candidateData.party || '',
+      party_leader: candidateData.partyLeader || null,
+      district_id: districtData.id,
+      constituency_id: constituencyData.id,
+      symbol: symbol,
+      image_url: imageUrl,
+      vote_count: 0
+    };
+    
+    console.log('Final candidate data to insert:', candidateInsertData);
+    
+    const { data: newCandidate, error: insertError } = await supabase
       .from('candidates')
-      .insert({
-        name: candidateData.name || '',
-        party: candidateData.party || '',
-        party_leader: candidateData.partyLeader || null,
-        district_id: districtData.id,
-        constituency_id: constituencyData.id,
-        symbol: symbol,
-        image_url: imageUrl,
-        vote_count: 0
-      })
+      .insert(candidateInsertData)
       .select('id, name, party, party_leader, symbol, image_url, vote_count')
       .single();
 
-    if (error) throw error;
+    if (insertError) {
+      console.error('Error inserting candidate:', insertError);
+      throw insertError;
+    }
 
-    if (!newCandidate) return null;
+    if (!newCandidate) {
+      console.error('No candidate data returned after insert');
+      return null;
+    }
+
+    console.log('Successfully registered candidate:', newCandidate);
 
     return {
       id: newCandidate.id,

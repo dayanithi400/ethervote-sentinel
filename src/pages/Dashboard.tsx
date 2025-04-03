@@ -13,6 +13,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useAuth } from "@/context/AuthContext";
 import { mockGetCandidatesByConstituency } from "@/services/mockData";
+import { getCandidatesByConstituency } from "@/services/supabaseService";
 import { Candidate } from "@/types";
 import { Vote, UserCircle, MapPin, CheckCircle, ShieldAlert } from "lucide-react";
 import Navbar from "@/components/Navbar";
@@ -31,11 +32,34 @@ const Dashboard: React.FC = () => {
 
     const loadCandidates = async () => {
       if (user && user.district && user.constituency) {
-        const constituencyCandidates = await mockGetCandidatesByConstituency(
-          user.district,
-          user.constituency
-        );
-        setCandidates(constituencyCandidates);
+        try {
+          // First try to get candidates from Supabase
+          const supabaseCandidates = await getCandidatesByConstituency(
+            user.district,
+            user.constituency
+          );
+          
+          if (supabaseCandidates && supabaseCandidates.length > 0) {
+            console.log("Found candidates in Supabase:", supabaseCandidates);
+            setCandidates(supabaseCandidates);
+          } else {
+            // Fall back to mock data if no candidates found
+            console.log("No candidates found in Supabase, using mock data");
+            const mockCandidates = await mockGetCandidatesByConstituency(
+              user.district,
+              user.constituency
+            );
+            setCandidates(mockCandidates);
+          }
+        } catch (error) {
+          console.error("Error loading candidates:", error);
+          // Fall back to mock data on error
+          const mockCandidates = await mockGetCandidatesByConstituency(
+            user.district,
+            user.constituency
+          );
+          setCandidates(mockCandidates);
+        }
       }
       setIsLoading(false);
     };

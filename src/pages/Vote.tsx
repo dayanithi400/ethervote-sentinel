@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { 
@@ -11,6 +12,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/context/AuthContext";
 import { mockGetCandidatesByConstituency, mockCastVote } from "@/services/mockData";
+import { getCandidatesByConstituency } from "@/services/supabaseService";
 import { Candidate, VoteData } from "@/types";
 import { connectWallet, getCurrentWalletAddress, mockBlockchainTransaction } from "@/utils/web3";
 import { toast } from "sonner";
@@ -37,11 +39,34 @@ const Vote: React.FC = () => {
       setWalletConnected(!!address);
       
       if (user && user.district && user.constituency) {
-        const constituencyCandidates = await mockGetCandidatesByConstituency(
-          user.district,
-          user.constituency
-        );
-        setCandidates(constituencyCandidates);
+        try {
+          // First try to get candidates from Supabase
+          const supabaseCandidates = await getCandidatesByConstituency(
+            user.district,
+            user.constituency
+          );
+          
+          if (supabaseCandidates && supabaseCandidates.length > 0) {
+            console.log("Found candidates in Supabase:", supabaseCandidates);
+            setCandidates(supabaseCandidates);
+          } else {
+            // Fall back to mock data if no candidates found
+            console.log("No candidates found in Supabase, using mock data");
+            const mockCandidates = await mockGetCandidatesByConstituency(
+              user.district,
+              user.constituency
+            );
+            setCandidates(mockCandidates);
+          }
+        } catch (error) {
+          console.error("Error loading candidates:", error);
+          // Fall back to mock data on error
+          const mockCandidates = await mockGetCandidatesByConstituency(
+            user.district,
+            user.constituency
+          );
+          setCandidates(mockCandidates);
+        }
       }
       setIsLoading(false);
     };
