@@ -279,9 +279,11 @@ const Admin: React.FC = () => {
                   <Input
                     id="name"
                     name="name"
+                    type="text" 
                     placeholder="Enter candidate name"
                     value={formData.name}
                     onChange={handleChange}
+                    required
                   />
                 </div>
                 
@@ -290,9 +292,11 @@ const Admin: React.FC = () => {
                   <Input
                     id="party"
                     name="party"
+                    type="text"
                     placeholder="Enter party name"
                     value={formData.party}
                     onChange={handleChange}
+                    required
                   />
                 </div>
                 
@@ -301,6 +305,7 @@ const Admin: React.FC = () => {
                   <Input
                     id="partyLeader"
                     name="partyLeader"
+                    type="text"
                     placeholder="Enter party leader name"
                     value={formData.partyLeader}
                     onChange={handleChange}
@@ -309,7 +314,11 @@ const Admin: React.FC = () => {
                 
                 <div className="space-y-2">
                   <Label htmlFor="district">District</Label>
-                  <Select onValueChange={handleDistrictChange} value={formData.district}>
+                  <Select 
+                    onValueChange={handleDistrictChange} 
+                    value={formData.district}
+                    required
+                  >
                     <SelectTrigger>
                       <SelectValue placeholder="Select district" />
                     </SelectTrigger>
@@ -329,6 +338,7 @@ const Admin: React.FC = () => {
                     onValueChange={handleConstituencyChange}
                     value={formData.constituency}
                     disabled={!formData.district}
+                    required
                   >
                     <SelectTrigger>
                       <SelectValue placeholder={!formData.district ? 
@@ -359,7 +369,7 @@ const Admin: React.FC = () => {
                   </div>
                   
                   {useImage ? (
-                    <div className="border-2 border-dashed border-gray-300 rounded-lg p-4 text-center">
+                    <div className="relative border-2 border-dashed border-gray-300 rounded-lg p-4 text-center">
                       {imagePreview ? (
                         <div className="flex flex-col items-center">
                           <img 
@@ -394,7 +404,8 @@ const Admin: React.FC = () => {
                       <input
                         type="file"
                         id="image"
-                        accept="image/*"
+                        name="image"
+                        accept="image/png, image/jpeg, image/jpg"
                         className={`absolute inset-0 w-full h-full opacity-0 cursor-pointer ${imagePreview ? 'hidden' : ''}`}
                         onChange={handleImageChange}
                       />
@@ -417,6 +428,7 @@ const Admin: React.FC = () => {
                         <Input
                           id="customSymbol"
                           name="customSymbol"
+                          type="text"
                           placeholder="Enter custom symbol"
                           value={customSymbol}
                           onChange={handleCustomSymbolChange}
