@@ -18,6 +18,7 @@ export type Database = {
           image_url: string | null
           name: string
           party: string
+          party_leader: string | null
           symbol: string
           vote_count: number | null
         }
@@ -29,6 +30,7 @@ export type Database = {
           image_url?: string | null
           name: string
           party: string
+          party_leader?: string | null
           symbol: string
           vote_count?: number | null
         }
@@ -40,6 +42,7 @@ export type Database = {
           image_url?: string | null
           name?: string
           party?: string
+          party_leader?: string | null
           symbol?: string
           vote_count?: number | null
         }
