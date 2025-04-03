@@ -1,10 +1,8 @@
-
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { 
   Card, 
   CardContent, 
-  CardDescription, 
   CardFooter,
   CardHeader, 
   CardTitle 
@@ -40,18 +38,14 @@ const Vote: React.FC = () => {
       
       if (user && user.district && user.constituency) {
         try {
-          // First try to get candidates from Supabase
           const supabaseCandidates = await getCandidatesByConstituency(
             user.district,
             user.constituency
           );
           
           if (supabaseCandidates && supabaseCandidates.length > 0) {
-            console.log("Found candidates in Supabase:", supabaseCandidates);
             setCandidates(supabaseCandidates);
           } else {
-            // Fall back to mock data if no candidates found
-            console.log("No candidates found in Supabase, using mock data");
             const mockCandidates = await mockGetCandidatesByConstituency(
               user.district,
               user.constituency
@@ -59,8 +53,6 @@ const Vote: React.FC = () => {
             setCandidates(mockCandidates);
           }
         } catch (error) {
-          console.error("Error loading candidates:", error);
-          // Fall back to mock data on error
           const mockCandidates = await mockGetCandidatesByConstituency(
             user.district,
             user.constituency
@@ -135,7 +127,6 @@ const Vote: React.FC = () => {
       }, 2000);
       
     } catch (error) {
-      console.error("Voting error:", error);
       toast.error("Voting failed", {
         description: "There was an error casting your vote"
       });
@@ -159,103 +150,38 @@ const Vote: React.FC = () => {
   return (
     <div className="min-h-screen bg-gray-50">
       <Navbar />
-      
       <main className="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900">Cast Your Vote</h1>
-          <p className="mt-1 text-gray-500">
-            Vote for one candidate in your constituency: {user.district}, {user.constituency}
-          </p>
-        </div>
-
-        <Card className="max-w-3xl mx-auto">
-          <CardHeader>
-            <CardTitle className="flex items-center">
-              <VoteIcon className="h-5 w-5 mr-2 text-vote-primary" />
-              Select Your Candidate
-            </CardTitle>
-            <CardDescription>
-              Your vote is secure and will be recorded on the blockchain
-            </CardDescription>
-          </CardHeader>
-          
-          <CardContent>
-            {isLoading ? (
-              <div className="py-10 text-center">
-                <Loader2 className="h-8 w-8 mx-auto animate-spin text-vote-primary" />
-                <p className="mt-2">Loading candidates...</p>
-              </div>
-            ) : candidates.length === 0 ? (
-              <div className="py-10 text-center">
-                <AlertTriangle className="h-8 w-8 mx-auto text-amber-500" />
-                <p className="mt-2 text-gray-600">No candidates available for your constituency.</p>
-              </div>
-            ) : (
-              <div className="space-y-4">
-                {candidates.map((candidate) => (
-                  <div 
-                    key={candidate.id}
-                    className={`p-4 border rounded-lg flex items-center cursor-pointer transition-all ${
-                      selectedCandidate === candidate.id 
-                        ? "border-vote-primary bg-blue-50" 
-                        : "hover:border-gray-300"
-                    }`}
-                    onClick={() => handleSelectCandidate(candidate.id)}
-                  >
-                    <div className="text-4xl mr-4">{candidate.symbol}</div>
-                    <div className="flex-1">
-                      <h3 className="font-medium text-gray-900">{candidate.name}</h3>
-                      <p className="text-gray-500">{candidate.party}</p>
-                    </div>
-                    {selectedCandidate === candidate.id && (
-                      <Check className="h-6 w-6 text-vote-success" />
-                    )}
-                  </div>
-                ))}
-              </div>
-            )}
-            
-            <div className="mt-8 p-4 bg-amber-50 border border-amber-200 rounded-lg">
-              <div className="flex items-start">
-                <AlertTriangle className="h-5 w-5 text-amber-500 mt-0.5 mr-2 flex-shrink-0" />
-                <div>
-                  <h3 className="font-medium text-amber-800">Important Notice</h3>
-                  <p className="text-sm text-amber-700 mt-1">
-                    Once your vote is cast, it cannot be changed. Please confirm your selection
-                    before submitting. Your vote will be recorded on the blockchain.
-                  </p>
-                </div>
-              </div>
-            </div>
-          </CardContent>
-          
-          <CardFooter className="flex-col space-y-4">
-            {!walletConnected && (
-              <Button 
-                variant="outline" 
-                className="w-full"
-                onClick={handleConnectWallet}
+        <h1 className="text-3xl font-bold text-gray-900 mb-4">Cast Your Vote</h1>
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
+          {isLoading ? (
+            <Loader2 className="h-8 w-8 mx-auto animate-spin text-vote-primary" />
+          ) : candidates.length === 0 ? (
+            <p className="text-gray-600">No candidates available.</p>
+          ) : (
+            candidates.map((candidate) => (
+              <Card 
+                key={candidate.id} 
+                className={`cursor-pointer border ${selectedCandidate === candidate.id ? "border-vote-primary bg-blue-50" : "hover:border-gray-300"}`} 
+                onClick={() => handleSelectCandidate(candidate.id)}
               >
-                Connect MetaMask Wallet
-              </Button>
-            )}
-            
-            <Button
-              className="w-full bg-vote-primary hover:bg-vote-secondary"
-              onClick={handleCastVote}
-              disabled={!selectedCandidate || isVoting || !walletConnected}
-            >
-              {isVoting ? (
-                <>
-                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                  Processing Vote...
-                </>
-              ) : (
-                "Cast Vote"
-              )}
-            </Button>
-          </CardFooter>
-        </Card>
+                <CardHeader className="flex flex-col items-center">
+                  <img src={candidate.imageUrl} alt={candidate.name} className="w-26 h-60 object-cover  rounded-full" />
+                  <CardTitle className="mt-3 text-lg font-bold">{candidate.name}</CardTitle>
+                </CardHeader>
+                <CardContent className="text-center">
+                  <p className="text-gray-700 font-semibold">{candidate.party}</p>
+                  <p className="text-gray-500 text-sm">Patry Leader: {candidate.partyLeader}</p>
+                </CardContent>
+                <CardFooter className="flex justify-center">
+                  {selectedCandidate === candidate.id && <Check className="h-6 w-6 text-vote-success" />}
+                </CardFooter>
+              </Card>
+            ))
+          )}
+        </div>
+        <Button className="mt-6 w-full bg-vote-primary hover:bg-vote-secondary" onClick={handleCastVote} disabled={!selectedCandidate || isVoting || !walletConnected}>
+          {isVoting ? "Processing Vote..." : "Cast Vote"}
+        </Button>
       </main>
     </div>
   );
