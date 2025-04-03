@@ -1,4 +1,3 @@
-
 import { supabase } from '@/integrations/supabase/client';
 import { User, Candidate, District, VoteData } from '@/types';
 
@@ -20,6 +19,7 @@ type DbCandidate = {
   id: string;
   name: string;
   party: string;
+  party_leader: string | null;
   district_id: string;
   constituency_id: string;
   symbol: string;
@@ -59,7 +59,7 @@ export const getAllCandidates = async (): Promise<Candidate[]> => {
     const { data: candidatesData, error } = await supabase
       .from('candidates')
       .select(`
-        id, name, party, district_id, constituency_id, symbol, image_url, vote_count,
+        id, name, party, party_leader, district_id, constituency_id, symbol, image_url, vote_count,
         districts:district_id(name),
         constituencies:constituency_id(name)
       `);
@@ -72,6 +72,7 @@ export const getAllCandidates = async (): Promise<Candidate[]> => {
       id: c.id,
       name: c.name,
       party: c.party,
+      partyLeader: c.party_leader || undefined,
       district: c.districts?.name || '',
       constituency: c.constituencies?.name || '',
       symbol: c.symbol,
@@ -111,7 +112,7 @@ export const getCandidatesByConstituency = async (
 
     const { data: candidatesData, error } = await supabase
       .from('candidates')
-      .select('id, name, party, symbol, image_url, vote_count')
+      .select('id, name, party, party_leader, symbol, image_url, vote_count')
       .eq('district_id', districtData.id)
       .eq('constituency_id', constituencyData.id);
 
@@ -123,6 +124,7 @@ export const getCandidatesByConstituency = async (
       id: c.id,
       name: c.name,
       party: c.party,
+      partyLeader: c.party_leader || undefined,
       district: district,
       constituency: constituency,
       symbol: c.symbol,
@@ -234,13 +236,14 @@ export const addCandidate = async (candidateData: Partial<Candidate>, imageFile?
       .insert({
         name: candidateData.name || '',
         party: candidateData.party || '',
+        party_leader: candidateData.partyLeader || null,
         district_id: districtData.id,
         constituency_id: constituencyData.id,
         symbol: symbol,
         image_url: imageUrl,
         vote_count: 0
       })
-      .select('id, name, party, symbol, image_url, vote_count')
+      .select('id, name, party, party_leader, symbol, image_url, vote_count')
       .single();
 
     if (error) throw error;
@@ -251,6 +254,7 @@ export const addCandidate = async (candidateData: Partial<Candidate>, imageFile?
       id: newCandidate.id,
       name: newCandidate.name,
       party: newCandidate.party,
+      partyLeader: newCandidate.party_leader || undefined,
       district: candidateData.district || '',
       constituency: candidateData.constituency || '',
       symbol: newCandidate.symbol,

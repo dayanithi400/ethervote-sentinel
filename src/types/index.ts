@@ -40,6 +40,7 @@ export interface Candidate {
   id: string;
   name: string;
   party: string;
+  partyLeader?: string; // Added party leader field
   district: string;
   constituency: string;
   symbol: string;

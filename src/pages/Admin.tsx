@@ -13,6 +13,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Switch } from "@/components/ui/switch";
 import { useAuth } from "@/context/AuthContext";
 import { mockAddCandidate, MOCK_DISTRICTS, MOCK_CANDIDATES } from "@/services/mockData";
 import { addCandidate, getAllCandidates, uploadCandidateImage } from "@/services/supabaseService";
@@ -30,6 +31,7 @@ const Admin: React.FC = () => {
   const [formData, setFormData] = useState({
     name: "",
     party: "",
+    partyLeader: "",
     district: "",
     constituency: "",
     symbol: "🌟"
@@ -198,7 +200,14 @@ const Admin: React.FC = () => {
       
       try {
         console.log("Adding candidate with image:", useImage ? imageFile : undefined);
-        newCandidate = await addCandidate(formData, useImage ? imageFile! : undefined);
+        console.log("Form data:", formData);
+        
+        const candidateDataWithLeader = {
+          ...formData,
+          partyLeader: formData.partyLeader || 'Not specified'
+        };
+        
+        newCandidate = await addCandidate(candidateDataWithLeader, useImage ? imageFile! : undefined);
       } catch (error) {
         console.error("Supabase error, falling back to mock:", error);
         newCandidate = await mockAddCandidate(formData);
@@ -212,6 +221,7 @@ const Admin: React.FC = () => {
         setFormData({
           name: "",
           party: "",
+          partyLeader: "",
           district: "",
           constituency: "",
           symbol: "🌟"
@@ -287,6 +297,17 @@ const Admin: React.FC = () => {
                 </div>
                 
                 <div className="space-y-2">
+                  <Label htmlFor="partyLeader">Party Leader</Label>
+                  <Input
+                    id="partyLeader"
+                    name="partyLeader"
+                    placeholder="Enter party leader name"
+                    value={formData.partyLeader}
+                    onChange={handleChange}
+                  />
+                </div>
+                
+                <div className="space-y-2">
                   <Label htmlFor="district">District</Label>
                   <Select onValueChange={handleDistrictChange} value={formData.district}>
                     <SelectTrigger>
@@ -325,100 +346,100 @@ const Admin: React.FC = () => {
                 </div>
                 
                 <div className="space-y-2">
-                  <div className="flex justify-between">
-                    <Label>Candidate Identifier</Label>
-                    <div className="flex gap-2">
-                      <Button 
-                        type="button" 
-                        variant="outline" 
-                        size="sm"
-                        onClick={toggleSymbolMode}
-                        className={`text-xs ${!useImage && useCustomSymbol ? 'bg-gray-100' : ''}`}
-                        disabled={useImage}
-                      >
-                        Symbol
-                      </Button>
-                      <Button 
-                        type="button" 
-                        variant="outline" 
-                        size="sm"
-                        onClick={toggleImageMode}
-                        className={`text-xs ${useImage ? 'bg-gray-100' : ''}`}
-                      >
-                        <Image className="h-3 w-3 mr-1" />
-                        Image
-                      </Button>
+                  <div className="flex justify-between items-center">
+                    <Label>Candidate Photo</Label>
+                    <div className="flex items-center space-x-2">
+                      <Label htmlFor="useImage" className="text-sm">Use Photo</Label>
+                      <Switch
+                        id="useImage"
+                        checked={useImage}
+                        onCheckedChange={toggleImageMode}
+                      />
                     </div>
                   </div>
                   
                   {useImage ? (
-                    <div className="space-y-3">
-                      <div className="border-2 border-dashed border-gray-300 rounded-lg p-4 text-center">
-                        {imagePreview ? (
-                          <div className="flex flex-col items-center">
-                            <img 
-                              src={imagePreview} 
-                              alt="Preview" 
-                              className="h-32 w-auto object-contain mb-2" 
-                            />
-                            <Button
-                              type="button"
-                              variant="outline"
-                              size="sm"
-                              onClick={() => {
-                                setImageFile(null);
-                                setImagePreview(null);
-                              }}
-                            >
-                              Remove
-                            </Button>
-                          </div>
-                        ) : (
-                          <div className="py-4">
-                            <Upload className="h-8 w-8 mx-auto text-gray-400 mb-2" />
-                            <p className="text-sm text-gray-500">
-                              Click to upload or drag and drop
-                            </p>
-                            <p className="text-xs text-gray-400 mt-1">
-                              PNG, JPG up to 2MB
-                            </p>
-                          </div>
-                        )}
-                        
-                        <input
-                          type="file"
-                          id="image"
-                          accept="image/*"
-                          className={`absolute inset-0 w-full h-full opacity-0 cursor-pointer ${imagePreview ? 'hidden' : ''}`}
-                          onChange={handleImageChange}
-                        />
-                      </div>
+                    <div className="border-2 border-dashed border-gray-300 rounded-lg p-4 text-center">
+                      {imagePreview ? (
+                        <div className="flex flex-col items-center">
+                          <img 
+                            src={imagePreview} 
+                            alt="Preview" 
+                            className="h-40 w-auto object-contain mb-2" 
+                          />
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            onClick={() => {
+                              setImageFile(null);
+                              setImagePreview(null);
+                            }}
+                          >
+                            Remove
+                          </Button>
+                        </div>
+                      ) : (
+                        <div className="py-4">
+                          <Upload className="h-8 w-8 mx-auto text-gray-400 mb-2" />
+                          <p className="text-sm text-gray-500">
+                            Click to upload candidate photo
+                          </p>
+                          <p className="text-xs text-gray-400 mt-1">
+                            PNG, JPG up to 2MB
+                          </p>
+                        </div>
+                      )}
+                      
+                      <input
+                        type="file"
+                        id="image"
+                        accept="image/*"
+                        className={`absolute inset-0 w-full h-full opacity-0 cursor-pointer ${imagePreview ? 'hidden' : ''}`}
+                        onChange={handleImageChange}
+                      />
                     </div>
-                  ) : useCustomSymbol ? (
-                    <Input
-                      id="customSymbol"
-                      name="customSymbol"
-                      placeholder="Enter custom symbol"
-                      value={customSymbol}
-                      onChange={handleCustomSymbolChange}
-                      maxLength={4}
-                    />
                   ) : (
-                    <Select onValueChange={handleSymbolChange} value={formData.symbol}>
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {EMOJI_OPTIONS.map((emoji) => (
-                          <SelectItem key={emoji} value={emoji}>
-                            <div className="flex items-center">
-                              <span className="text-xl mr-2">{emoji}</span>
-                              <span>{emoji}</span>
-                            </div>
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                    <div className="space-y-2">
+                      <div className="flex justify-between items-center">
+                        <Label>Candidate Symbol</Label>
+                        <div className="flex items-center space-x-2">
+                          <Label htmlFor="useCustomSymbol" className="text-sm">Custom</Label>
+                          <Switch
+                            id="useCustomSymbol"
+                            checked={useCustomSymbol}
+                            onCheckedChange={toggleSymbolMode}
+                          />
+                        </div>
+                      </div>
+                      
+                      {useCustomSymbol ? (
+                        <Input
+                          id="customSymbol"
+                          name="customSymbol"
+                          placeholder="Enter custom symbol"
+                          value={customSymbol}
+                          onChange={handleCustomSymbolChange}
+                          maxLength={4}
+                        />
+                      ) : (
+                        <Select onValueChange={handleSymbolChange} value={formData.symbol}>
+                          <SelectTrigger>
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {EMOJI_OPTIONS.map((emoji) => (
+                              <SelectItem key={emoji} value={emoji}>
+                                <div className="flex items-center">
+                                  <span className="text-xl mr-2">{emoji}</span>
+                                  <span>{emoji}</span>
+                                </div>
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      )}
+                    </div>
                   )}
                 </div>
                 
@@ -452,17 +473,18 @@ const Admin: React.FC = () => {
                 </div>
               ) : (
                 <div className="space-y-4">
-                  <div className="grid grid-cols-7 text-sm font-medium text-gray-500 pb-2 border-b">
+                  <div className="grid grid-cols-8 text-sm font-medium text-gray-500 pb-2 border-b">
                     <div className="col-span-1">Image/Symbol</div>
                     <div className="col-span-1">Name</div>
                     <div className="col-span-1">Party</div>
-                    <div className="col-span-2">District</div>
+                    <div className="col-span-2">Party Leader</div>
+                    <div className="col-span-1">District</div>
                     <div className="col-span-1">Constituency</div>
                     <div className="col-span-1 text-right">Votes</div>
                   </div>
                   
                   {candidates.map((candidate) => (
-                    <div key={candidate.id} className="grid grid-cols-7 py-3 border-b text-sm">
+                    <div key={candidate.id} className="grid grid-cols-8 py-3 border-b text-sm">
                       <div className="col-span-1">
                         {candidate.imageUrl ? (
                           <img 
@@ -476,7 +498,8 @@ const Admin: React.FC = () => {
                       </div>
                       <div className="col-span-1 font-medium">{candidate.name}</div>
                       <div className="col-span-1">{candidate.party}</div>
-                      <div className="col-span-2">{candidate.district}</div>
+                      <div className="col-span-2">{candidate.partyLeader || 'Not specified'}</div>
+                      <div className="col-span-1">{candidate.district}</div>
                       <div className="col-span-1">{candidate.constituency}</div>
                       <div className="col-span-1 text-right font-medium">{candidate.voteCount}</div>
                     </div>
