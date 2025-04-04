@@ -8,6 +8,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Label } from "@/components/ui/label";
 import { BarChart as RechartsBarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell, PieChart as RechartsPieChart, Pie, Legend } from "recharts";
 import Navbar from "@/components/Navbar";
+import { getAllCandidates, getAllDistricts } from "@/services/supabaseService";
+import { District } from "@/types";
+import { Loader2 } from "lucide-react";
+import { toast } from "sonner";
 
 const COLORS = ['#0052CC', '#4C9AFF', '#6554C0', '#00B8D9', '#36B37E', '#00875A', '#FF5630', '#FF8B00'];
 
@@ -18,13 +22,47 @@ const Results: React.FC = () => {
   const [selectedConstituency, setSelectedConstituency] = useState<string>("");
   const [constituencies, setConstituencies] = useState<string[]>([]);
   const [chartType, setChartType] = useState<"bar" | "pie">("bar");
+  const [districts, setDistricts] = useState<District[]>([]);
   
   useEffect(() => {
     const loadResults = async () => {
       setIsLoading(true);
-      const results = await mockGetResults();
-      setCandidates(results);
-      setIsLoading(false);
+      try {
+        // First try to get real results from Supabase
+        const supabaseCandidates = await getAllCandidates();
+        
+        if (supabaseCandidates && supabaseCandidates.length > 0) {
+          setCandidates(supabaseCandidates);
+          console.log("Loaded real candidates from Supabase:", supabaseCandidates);
+        } else {
+          // Fallback to mock data if no real data is available
+          const mockResults = await mockGetResults();
+          setCandidates(mockResults);
+          console.log("No real candidates found, using mock data");
+        }
+        
+        // Load districts
+        const realDistricts = await getAllDistricts();
+        if (realDistricts && realDistricts.length > 0) {
+          setDistricts(realDistricts);
+          console.log("Loaded real districts from Supabase:", realDistricts);
+        } else {
+          setDistricts(MOCK_DISTRICTS);
+          console.log("No real districts found, using mock data");
+        }
+      } catch (error) {
+        console.error("Error loading results:", error);
+        toast.error("Failed to load results", {
+          description: "Please try again later"
+        });
+        
+        // Fallback to mock data on error
+        const mockResults = await mockGetResults();
+        setCandidates(mockResults);
+        setDistricts(MOCK_DISTRICTS);
+      } finally {
+        setIsLoading(false);
+      }
     };
     
     loadResults();
@@ -35,7 +73,12 @@ const Results: React.FC = () => {
     setSelectedDistrict(value);
     setSelectedConstituency("");
     
-    const district = MOCK_DISTRICTS.find(d => d.name === value);
+    if (value === "all-districts") {
+      setConstituencies([]);
+      return;
+    }
+    
+    const district = districts.find(d => d.name === value);
     if (district) {
       setConstituencies(district.constituencies);
     } else {
@@ -50,16 +93,18 @@ const Results: React.FC = () => {
   
   // Filter candidates based on selected district and constituency
   const filteredCandidates = React.useMemo(() => {
-    if (!selectedDistrict && !selectedConstituency) {
-      return candidates;
+    if (!selectedDistrict || selectedDistrict === "all-districts") {
+      if (!selectedConstituency || selectedConstituency === "all-constituencies") {
+        return candidates;
+      }
     }
     
     return candidates.filter(candidate => {
-      if (selectedDistrict && candidate.district !== selectedDistrict) {
+      if (selectedDistrict && selectedDistrict !== "all-districts" && candidate.district !== selectedDistrict) {
         return false;
       }
       
-      if (selectedConstituency && candidate.constituency !== selectedConstituency) {
+      if (selectedConstituency && selectedConstituency !== "all-constituencies" && candidate.constituency !== selectedConstituency) {
         return false;
       }
       
@@ -74,7 +119,7 @@ const Results: React.FC = () => {
       party: candidate.party,
       votes: candidate.voteCount,
       symbol: candidate.symbol
-    }));
+    })).sort((a, b) => b.votes - a.votes); // Sort by votes in descending order
   }, [filteredCandidates]);
   
   return (
@@ -109,7 +154,7 @@ const Results: React.FC = () => {
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="all-districts">All Districts</SelectItem>
-                    {MOCK_DISTRICTS.map((district) => (
+                    {districts.map((district) => (
                       <SelectItem key={district.id} value={district.name}>
                         {district.name}
                       </SelectItem>
@@ -123,10 +168,10 @@ const Results: React.FC = () => {
                 <Select 
                   onValueChange={handleConstituencyChange}
                   value={selectedConstituency}
-                  disabled={!selectedDistrict}
+                  disabled={!selectedDistrict || selectedDistrict === "all-districts"}
                 >
                   <SelectTrigger>
-                    <SelectValue placeholder={!selectedDistrict ? 
+                    <SelectValue placeholder={!selectedDistrict || selectedDistrict === "all-districts" ? 
                       "Select a district first" : "All Constituencies"} 
                     />
                   </SelectTrigger>
@@ -175,9 +220,9 @@ const Results: React.FC = () => {
                 Vote Distribution
               </CardTitle>
               <CardDescription>
-                {selectedDistrict && selectedConstituency
+                {selectedDistrict && selectedDistrict !== "all-districts" && selectedConstituency && selectedConstituency !== "all-constituencies"
                   ? `${selectedDistrict}, ${selectedConstituency}`
-                  : selectedDistrict
+                  : selectedDistrict && selectedDistrict !== "all-districts"
                   ? `${selectedDistrict}, All Constituencies`
                   : "All Districts and Constituencies"}
               </CardDescription>
@@ -185,7 +230,7 @@ const Results: React.FC = () => {
             <CardContent>
               {isLoading ? (
                 <div className="h-80 flex items-center justify-center">
-                  <p>Loading results...</p>
+                  <Loader2 className="h-8 w-8 animate-spin text-vote-primary" />
                 </div>
               ) : chartData.length === 0 ? (
                 <div className="h-80 flex items-center justify-center">
@@ -244,7 +289,10 @@ const Results: React.FC = () => {
             </CardHeader>
             <CardContent>
               {isLoading ? (
-                <div className="py-6 text-center">Loading results...</div>
+                <div className="py-6 text-center">
+                  <Loader2 className="h-6 w-6 animate-spin mx-auto text-vote-primary mb-2" />
+                  Loading results...
+                </div>
               ) : chartData.length === 0 ? (
                 <div className="py-6 text-center text-gray-500">
                   No data available for the selected filters
@@ -265,7 +313,7 @@ const Results: React.FC = () => {
                           <div 
                             className="bg-vote-primary h-2.5 rounded-full" 
                             style={{ 
-                              width: `${Math.min(100, (candidate.votes / Math.max(...chartData.map(c => c.votes))) * 100)}%` 
+                              width: `${Math.min(100, (candidate.votes / Math.max(...chartData.map(c => c.votes), 1)) * 100)}%` 
                             }}
                           ></div>
                         </div>
