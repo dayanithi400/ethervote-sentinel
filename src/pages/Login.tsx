@@ -39,17 +39,6 @@ const Login: React.FC = () => {
     }
   };
 
-  // Helper function for login demo credentials
-  const setDemoCredentials = (type: "voter" | "admin") => {
-    if (type === "voter") {
-      setEmail("john@example.com");
-      setPassword("password123");
-    } else {
-      setEmail("admin@gmail.com");
-      setPassword("admin123");
-    }
-  };
-
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
       <div className="sm:mx-auto sm:w-full sm:max-w-md">
@@ -108,28 +97,6 @@ const Login: React.FC = () => {
               </Button>
             </form>
           </CardContent>
-          <CardFooter className="flex flex-col">
-            <div className="text-sm text-gray-500 mb-4">
-              Demo credentials (for testing):
-            </div>
-            <div className="flex gap-2 w-full">
-              <Button 
-                variant="outline" 
-                className="flex-1"
-                onClick={() => setDemoCredentials("voter")}
-              >
-                Use Voter Demo
-              </Button>
-              <Button 
-                variant="outline" 
-                className="flex-1" 
-                onClick={() => setDemoCredentials("admin")}
-              >
-                <Shield className="w-4 h-4 mr-2" />
-                Use Admin Demo
-              </Button>
-            </div>
-          </CardFooter>
         </Card>
       </div>
     </div>
