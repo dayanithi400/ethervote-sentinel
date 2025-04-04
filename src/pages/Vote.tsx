@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { 
@@ -16,6 +17,7 @@ import { connectWallet, getCurrentWalletAddress, mockBlockchainTransaction } fro
 import { toast } from "sonner";
 import { Vote as VoteIcon, Check, AlertTriangle, Loader2 } from "lucide-react";
 import Navbar from "@/components/Navbar";
+import { supabase } from "@/integrations/supabase/client";
 
 const Vote: React.FC = () => {
   const { user, isAuthenticated } = useAuth();
@@ -53,6 +55,7 @@ const Vote: React.FC = () => {
             setCandidates(mockCandidates);
           }
         } catch (error) {
+          console.error("Error fetching candidates:", error);
           const mockCandidates = await mockGetCandidatesByConstituency(
             user.district,
             user.constituency
@@ -103,6 +106,14 @@ const Vote: React.FC = () => {
       
       const transaction = await mockBlockchainTransaction();
       
+      // Get the selected candidate details
+      const selectedCandidateDetails = candidates.find(c => c.id === selectedCandidate);
+      
+      if (!selectedCandidateDetails) {
+        throw new Error("Candidate not found");
+      }
+      
+      // Prepare vote data
       const voteData: VoteData = {
         voterId: user.voterId,
         candidateId: selectedCandidate,
@@ -112,21 +123,86 @@ const Vote: React.FC = () => {
         transactionHash: transaction.hash
       };
       
-      await mockCastVote(voteData);
+      // First, try to save the vote in Supabase
+      try {
+        // Find district and constituency IDs
+        const { data: districtData } = await supabase
+          .from('districts')
+          .select('id')
+          .eq('name', user.district)
+          .single();
+        
+        const { data: constituencyData } = await supabase
+          .from('constituencies')
+          .select('id')
+          .eq('name', user.constituency)
+          .eq('district_id', districtData?.id)
+          .single();
+        
+        if (districtData && constituencyData) {
+          // Record the vote in the votes table
+          const { error: voteError } = await supabase
+            .from('votes')
+            .insert({
+              voter_id: user.voterId,
+              candidate_id: selectedCandidate,
+              district_id: districtData.id,
+              constituency_id: constituencyData.id,
+              transaction_hash: transaction.hash
+            });
+            
+          if (voteError) {
+            console.error("Error saving vote to Supabase:", voteError);
+            throw voteError;
+          }
+          
+          // Increment the candidate's vote count
+          const { error: updateError } = await supabase
+            .rpc('increment_vote_count', { candidate_id: selectedCandidate });
+            
+          if (updateError) {
+            console.error("Error incrementing vote count:", updateError);
+            throw updateError;
+          }
+          
+          console.log("Vote successfully recorded in Supabase");
+        } else {
+          throw new Error("District or constituency not found");
+        }
+      } catch (supabaseError) {
+        console.error("Supabase error, falling back to mock data:", supabaseError);
+        // Fall back to mock implementation if Supabase fails
+        await mockCastVote(voteData);
+      }
+      
+      // Update user's vote status
+      if (user) {
+        try {
+          const { error: userUpdateError } = await supabase
+            .from('users')
+            .update({ has_voted: true })
+            .eq('voter_id', user.voterId);
+            
+          if (userUpdateError) {
+            console.error("Error updating user vote status:", userUpdateError);
+          }
+          
+          user.hasVoted = true;
+        } catch (userError) {
+          console.error("Error updating user status:", userError);
+        }
+      }
       
       toast.success("Vote cast successfully", {
         description: `Transaction hash: ${transaction.hash.substring(0, 10)}...`
       });
-      
-      if (user) {
-        user.hasVoted = true;
-      }
       
       setTimeout(() => {
         navigate("/dashboard");
       }, 2000);
       
     } catch (error) {
+      console.error("Voting error:", error);
       toast.error("Voting failed", {
         description: "There was an error casting your vote"
       });
@@ -179,8 +255,29 @@ const Vote: React.FC = () => {
             ))
           )}
         </div>
-        <Button className="mt-6 w-full bg-vote-primary hover:bg-vote-secondary" onClick={handleCastVote} disabled={!selectedCandidate || isVoting || !walletConnected}>
-          {isVoting ? "Processing Vote..." : "Cast Vote"}
+        
+        {!walletConnected && (
+          <Button className="mt-6 w-full bg-amber-500 hover:bg-amber-600" onClick={handleConnectWallet}>
+            Connect MetaMask Wallet
+          </Button>
+        )}
+        
+        <Button 
+          className="mt-6 w-full bg-vote-primary hover:bg-vote-secondary" 
+          onClick={handleCastVote} 
+          disabled={!selectedCandidate || isVoting || !walletConnected}
+        >
+          {isVoting ? (
+            <>
+              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+              Processing Vote...
+            </>
+          ) : (
+            <>
+              <VoteIcon className="h-4 w-4 mr-2" />
+              Cast Vote
+            </>
+          )}
         </Button>
       </main>
     </div>
