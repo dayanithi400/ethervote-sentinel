@@ -119,14 +119,6 @@ const Results: React.FC = () => {
       <Navbar />
       
       <main className="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
-        <AspectRatio ratio={16 / 9} className="mb-8">
-          <img 
-            src="/placeholder.svg" 
-            alt="Election Results Header" 
-            className="w-full h-full object-cover rounded-lg shadow-md"
-          />
-        </AspectRatio>
-
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-gray-900">Election Results</h1>
           <p className="mt-1 text-gray-500">
