@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { mockGetResults, MOCK_DISTRICTS } from "@/services/mockData";
@@ -12,6 +11,7 @@ import { getAllCandidates, getAllDistricts } from "@/services/supabaseService";
 import { District } from "@/types";
 import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
+import { AspectRatio } from "@/components/ui/aspect-ratio";
 
 const COLORS = ['#0052CC', '#4C9AFF', '#6554C0', '#00B8D9', '#36B37E', '#00875A', '#FF5630', '#FF8B00'];
 
@@ -28,20 +28,17 @@ const Results: React.FC = () => {
     const loadResults = async () => {
       setIsLoading(true);
       try {
-        // First try to get real results from Supabase
         const supabaseCandidates = await getAllCandidates();
         
         if (supabaseCandidates && supabaseCandidates.length > 0) {
           setCandidates(supabaseCandidates);
           console.log("Loaded real candidates from Supabase:", supabaseCandidates);
         } else {
-          // Fallback to mock data if no real data is available
           const mockResults = await mockGetResults();
           setCandidates(mockResults);
           console.log("No real candidates found, using mock data");
         }
         
-        // Load districts
         const realDistricts = await getAllDistricts();
         if (realDistricts && realDistricts.length > 0) {
           setDistricts(realDistricts);
@@ -56,7 +53,6 @@ const Results: React.FC = () => {
           description: "Please try again later"
         });
         
-        // Fallback to mock data on error
         const mockResults = await mockGetResults();
         setCandidates(mockResults);
         setDistricts(MOCK_DISTRICTS);
@@ -68,7 +64,6 @@ const Results: React.FC = () => {
     loadResults();
   }, []);
   
-  // Handle district selection
   const handleDistrictChange = (value: string) => {
     setSelectedDistrict(value);
     setSelectedConstituency("");
@@ -86,12 +81,10 @@ const Results: React.FC = () => {
     }
   };
   
-  // Handle constituency selection
   const handleConstituencyChange = (value: string) => {
     setSelectedConstituency(value);
   };
   
-  // Filter candidates based on selected district and constituency
   const filteredCandidates = React.useMemo(() => {
     if (!selectedDistrict || selectedDistrict === "all-districts") {
       if (!selectedConstituency || selectedConstituency === "all-constituencies") {
@@ -112,14 +105,13 @@ const Results: React.FC = () => {
     });
   }, [candidates, selectedDistrict, selectedConstituency]);
   
-  // Format data for charts
   const chartData = React.useMemo(() => {
     return filteredCandidates.map((candidate) => ({
       name: candidate.name,
       party: candidate.party,
       votes: candidate.voteCount,
       symbol: candidate.symbol
-    })).sort((a, b) => b.votes - a.votes); // Sort by votes in descending order
+    })).sort((a, b) => b.votes - a.votes);
   }, [filteredCandidates]);
   
   return (
@@ -127,6 +119,14 @@ const Results: React.FC = () => {
       <Navbar />
       
       <main className="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
+        <AspectRatio ratio={16 / 9} className="mb-8">
+          <img 
+            src="/placeholder.svg" 
+            alt="Election Results Header" 
+            className="w-full h-full object-cover rounded-lg shadow-md"
+          />
+        </AspectRatio>
+
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-gray-900">Election Results</h1>
           <p className="mt-1 text-gray-500">
